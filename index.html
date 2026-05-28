@@ -619,7 +619,7 @@
 
   <div id="home-screen" class="screen active">
     <div class="logo">みんなの<span>タイピング</span></div>
-    <div class="logo-sub">Shin Typing</div>
+    <div class="logo-sub">Minnna no Typing</div>
     
     <div style="color: var(--gold-light); margin-bottom: 2rem; font-family: 'Noto Serif JP', serif; text-align: center;">
       現在の設定：<span id="start-template-name" style="font-weight: bold;">デフォルトのお題</span>
@@ -662,17 +662,18 @@
     </div>
   </div>
 
-  <div id="result-screen" class="screen">
+<div id="result-screen" class="screen">
     <div class="result-title">結果</div>
     <div>
       <div class="score-big" id="result-score">0.0</div>
       <div class="score-unit">秒</div>
     </div>
     <div class="sep" style="margin:0 auto;"></div>
-    
-        <div class="result-stats">
+
+    <div class="result-stats">
       <div>問題数 <span id="res-total">0</span></div>
       <div>ペナルティ <span id="res-penalty">0</span>秒</div>
+      <div>ミスタイプ数 <span id="res-miss-count" style="color: var(--wrong); font-weight: bold;">0</span>回</div>
       <div>最長タイム <span id="res-slowest" style="color: var(--wrong); font-weight: bold;">なし</span></div>
     </div>
     
@@ -681,8 +682,8 @@
       <button class="btn btn-primary" onclick="startGame()">もう一度</button>
       <button class="btn btn-secondary" onclick="showScreen('home-screen')">ホームへ</button>
     </div>
-    
-    <div class="card" style="margin: 1.5rem 0; text-align: left;">
+
+        <div class="card" style="margin: 1.5rem 0; text-align: left;">
       <h3 id="result-template-title" style="color: var(--gold); border-bottom: 1px solid rgba(0,0,0,0.1); padding-bottom: 0.5rem; margin-bottom: 1rem; font-family: 'Noto Serif JP', serif; font-size: 1.1rem;">
         テンプレート: 未設定
       </h3>
@@ -885,7 +886,8 @@ let currentUploadedImageBase64 = ''; // 一時保存用の画像変数
 let questionStartTime = 0;
 let timeRecords = [];
 let isGameRetire = false; // 【✨追加】ゲームをリタイアしたかどうかの状態フラグ
-let isSoundOn = true; // 【✨追加】音声がONかOFFかを管理する変数
+let isSoundOn = true;
+let missCount = 0; // 【✨追加】ゲーム中の総ミスタイプ数を記憶する変数
 
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
@@ -1065,6 +1067,7 @@ function startGame() {
   playedTemplateName = templateName;
   playedKanjiList = [...kanjiList]; 
   timeRecords = []; 
+  missCount = 0; // 【✨追加】新しいゲームが始まるので、ミス数を 0 にリセット
   
   let shuffledQueue = shuffle(kanjiList);
   
@@ -1215,7 +1218,9 @@ function onKeyDown(e) {
     // 3. タイピングを【間違えた】とき
     flashError();
     
-    playSE(SE.keyWrong); // ✨【追加】タイピングミスのブブッ音！
+playSE(SE.keyWrong); 
+    
+    missCount++; // 【✨追加】タイピングミスが発生したのでカウントを1増やす
   }
 }
 
@@ -1258,6 +1263,9 @@ function endGame(isEscaped = false) {
   document.getElementById('progress-bar').style.width = '100%';
   document.getElementById('res-total').textContent = gameQueue.length;
   document.getElementById('res-penalty').textContent = penaltySeconds;
+  
+  // 【✨追加】数え上げたミスタイプ数を結果画面のパーツに反映
+  document.getElementById('res-miss-count').textContent = missCount;
 
   const scoreBig = document.getElementById('result-score');
   const scoreUnit = document.querySelector('.score-unit');
@@ -1479,7 +1487,7 @@ function shareOnX() {
       slowestText = `「${slowest.kanji}」の ${slowest.time.toFixed(1)}秒`;
     }
     
-    text = `${playedTemplateName} の全${totalCount}問をクリアしました。所要時間は【${scoreTime}秒】です。\n最も入力に時間がかかった漢字は、${slowestText}でした。`;
+    text = `${playedTemplateName} の全${totalCount}問をクリアしました。所要時間は【${scoreTime}秒】です。\nミスタイプ数は${missCount}回、最も入力に時間がかかった漢字は、${slowestText}でした。`;
   }
 
   const hashtags = 'みんなのタイピング';
