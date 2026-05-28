@@ -465,6 +465,44 @@
     font-family: 'Share Tech Mono', monospace;
   }
 
+  .switch-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.8rem;
+  cursor: pointer;
+  font-size: 0.95rem;
+  color: var(--paper);
+}
+.switch-input {
+  appearance: none;
+  width: 44px;
+  height: 24px;
+  background: #e5e5ea;
+  border-radius: 12px;
+  position: relative;
+  cursor: pointer;
+  transition: background 0.2s;
+  outline: none;
+}
+.switch-input::before {
+  content: '';
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  top: 2px;
+  left: 2px;
+  background: #ffffff;
+  transition: transform 0.2s;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+}
+.switch-input:checked {
+  background: #34c759; /* ONのときはApple風の鮮やかなグリーンに */
+}
+.switch-input:checked::before {
+  transform: translateX(20px);
+}
+
 .add-form {
     display: flex;
     gap: 0.5rem;
@@ -594,7 +632,7 @@
       </div>
       <div class="menu-card" onclick="showScreen('settings-screen')">
         <div class="label">設定</div>
-        <div class="desc">お題を編集</div>
+        <div class="desc">お題の編集やゲームの設定</div>
       </div>
     </div>
     <div class="btn-group">
@@ -632,15 +670,7 @@
     </div>
     <div class="sep" style="margin:0 auto;"></div>
     
-    <div class="card" style="margin: 1.5rem 0; text-align: left;">
-      <h3 id="result-template-title" style="color: var(--gold); border-bottom: 1px solid rgba(0,0,0,0.1); padding-bottom: 0.5rem; margin-bottom: 1rem; font-family: 'Noto Serif JP', serif; font-size: 1.1rem;">
-        テンプレート: 未設定
-      </h3>
-      <div id="result-kanji-list" style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.8rem; font-size: 0.95rem;">
-      </div>
-    </div>
-
-    <div class="result-stats">
+        <div class="result-stats">
       <div>問題数 <span id="res-total">0</span></div>
       <div>ペナルティ <span id="res-penalty">0</span>秒</div>
       <div>最長タイム <span id="res-slowest" style="color: var(--wrong); font-weight: bold;">なし</span></div>
@@ -651,9 +681,25 @@
       <button class="btn btn-primary" onclick="startGame()">もう一度</button>
       <button class="btn btn-secondary" onclick="showScreen('home-screen')">ホームへ</button>
     </div>
+    
+    <div class="card" style="margin: 1.5rem 0; text-align: left;">
+      <h3 id="result-template-title" style="color: var(--gold); border-bottom: 1px solid rgba(0,0,0,0.1); padding-bottom: 0.5rem; margin-bottom: 1rem; font-family: 'Noto Serif JP', serif; font-size: 1.1rem;">
+        テンプレート: 未設定
+      </h3>
+      <div id="result-kanji-list" style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.8rem; font-size: 0.95rem;">
+      </div>
+    </div>
   </div>
 
   <div id="settings-screen" class="screen">
+    <div class="card" style="margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; background: var(--ink-light);">
+      <div style="text-align: left;">
+        <div style="font-weight: 700; font-size: 0.95rem;">効果音のオン/オフ</div>
+      </div>
+      <label class="switch-label">
+        <input type="checkbox" id="setting-sound" class="switch-input" checked onchange="toggleSoundSetting(this.checked)">
+      </label>
+    </div>
     <div class="settings-title" id="settings-title-text">お題設定</div>
 
     <div class="card" style="margin-bottom: 1rem; text-align: left; background: var(--ink-light);">
@@ -839,6 +885,77 @@ let currentUploadedImageBase64 = ''; // 一時保存用の画像変数
 let questionStartTime = 0;
 let timeRecords = [];
 let isGameRetire = false; // 【✨追加】ゲームをリタイアしたかどうかの状態フラグ
+let isSoundOn = true; // 【✨追加】音声がONかOFFかを管理する変数
+
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+function playTone(freq, type, duration, vol = 0.1) {
+  try {
+    // 音のパーツを作成
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    
+    osc.type = type;            // 音の種類 ('sine', 'square', 'sawtooth', 'triangle')
+    osc.frequency.value = freq; // 音の高さ (Hz)
+    
+    // 音量の調整（だんだん小さくしてブツ切れ音を防ぐ）
+    gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + duration);
+    
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    
+    osc.start();
+    osc.stop(audioCtx.currentTime + duration);
+  } catch (e) {
+    console.log("オーディオ再生エラー:", e);
+  }
+}
+
+// 各タイミングの音の鳴らし方を定義
+const SE = {
+  // タイピング正解：短く高い「ピピッ」という小気味よい打鍵音
+  keyCorrect: function() {
+    playTone(1200, 'sine', 0.05, 0.05);
+  },
+  
+  // タイピングミス：少し低めの濁った「ブッ」という警告音
+  keyWrong: function() {
+    playTone(150, 'sawtooth', 0.12, 0.08);
+  },
+  
+  // 問題クリア：お馴染みの「ピンポーン」という高い2連続の正解音
+  allCorrect: function() {
+    const now = audioCtx.currentTime;
+    playTone(523.25, 'sine', 0.15, 0.1); // ド
+    setTimeout(() => {
+      playTone(659.25, 'sine', 0.25, 0.1); // ミ
+    }, 100);
+  },
+  
+  // 全問完走：チャラチャラチャラーン！という華やかなファンファーレ
+  gameClear: function() {
+    const tones = [523.25, 587.33, 659.25, 783.99, 1046.50]; // ド・レ・ミ・ソ・ド
+    tones.forEach((freq, index) => {
+      setTimeout(() => {
+        playTone(freq, 'triangle', 0.4, 0.1);
+      }, index * 120);
+    });
+  }
+};
+
+// 前のコードの互換性のために再生用関数を形だけ残す
+function playSE(seFunction) {
+  // 【✨追加】音声設定がOFFなら、何もせずにここで処理をストップする
+  if (!isSoundOn) return;
+
+  if (audioCtx.state === 'suspended') {
+    audioCtx.resume();
+  }
+  if (typeof seFunction === 'function') {
+    seFunction();
+  }
+}
 
 // ========== UTILS ==========
 function saveKanjiList() {
@@ -1058,14 +1175,8 @@ function renderInputDisplay() {
 }
 
 function onKeyDown(e) {
-  if (e.key === 'Enter') {
-    showHint();
-    return;
-  }
-if (e.key === 'Escape') {
-    endGame(true); // 【修正】trueを渡して「中断（ギブアップ）」であることを伝えます
-    return;
-  }
+  if (e.key === 'Enter') { showHint(); return; }
+  if (e.key === 'Escape') { endGame(true); return; }
   if (e.key.length !== 1) return;
   const ch = e.key.toLowerCase();
   if (!/[a-z]/.test(ch)) return;
@@ -1073,11 +1184,14 @@ if (e.key === 'Escape') {
   const newTyped = currentTyped + ch;
   const allOpts = currentValidOptions;
   
+  // 1. その問題の最後の1文字を打ち込んで【問題正解】したとき
   const complete = allOpts.find(opt => opt === newTyped);
   if (complete) {
     currentTyped = newTyped;
     currentDisplayOption = complete;
     renderInputDisplay();
+    
+    playSE(SE.allCorrect); // ✨【追加】問題クリアのピンポン音！
     
     const questionDuration = elapsedTime - questionStartTime;
     timeRecords.push({
@@ -1089,13 +1203,19 @@ if (e.key === 'Escape') {
     return;
   }
   
+  // 2. 正しいタイピング（途中）のとき
   const prefixMatch = allOpts.filter(opt => opt.startsWith(newTyped));
   if (prefixMatch.length > 0) {
     currentTyped = newTyped;
     currentDisplayOption = prefixMatch[0];
     renderInputDisplay();
+    
+    playSE(SE.keyCorrect); // ✨【追加】タイピング成功のカチッ音！
   } else {
+    // 3. タイピングを【間違えた】とき
     flashError();
+    
+    playSE(SE.keyWrong); // ✨【追加】タイピングミスのブブッ音！
   }
 }
 
@@ -1149,6 +1269,7 @@ function endGame(isEscaped = false) {
   } else {
     scoreBig.textContent = elapsedTime.toFixed(1);
     if (scoreUnit) scoreUnit.style.display = 'inline-block'; 
+    playSE(SE.gameClear); // ✨【追加】else（通常クリア）の中にファンファーレ音を挿入！
   }
 
   document.getElementById('result-template-title').textContent = `テンプレート: ${playedTemplateName}`;
@@ -1374,12 +1495,30 @@ function shareOnX() {
     templateName = savedTemplate;
   }
   
+  // 【✨追加】保存された音声設定（ON/OFF）を読み込む（デフォルトはON）
+  const savedSound = localStorage.getItem('kanji-dojo-sound-on');
+  if (savedSound !== null) {
+    isSoundOn = (savedSound === 'true');
+  }
+  
   window.addEventListener('DOMContentLoaded', () => {
     document.getElementById('input-template-name').value = templateName;
     document.getElementById('start-template-name').textContent = templateName;
+    
+    // スイッチの見た目に設定を反映
+    const soundCheckbox = document.getElementById('setting-sound');
+    if (soundCheckbox) soundCheckbox.checked = isSoundOn;
+    
     updateHomeCount();
   });
 })();
+
+// 【✨追加】スイッチが切り替わったときに実行される関数
+function toggleSoundSetting(checked) {
+  isSoundOn = checked;
+  localStorage.setItem('kanji-dojo-sound-on', checked);
+  showToast(checked ? '音声をONにしました' : '音声をOFFにしました');
+}
 
 //document.getElementById('input-reading').addEventListener('keydown', e => {
 //  if (e.key === 'Enter') addKanji();
