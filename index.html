@@ -152,7 +152,18 @@
   .menu-card .desc { font-size: 0.75rem; color: var(--mist); margin-top: 0.2rem; }
 
   /* ===== GAME SCREEN ===== */
-  #game-screen { gap: 1.5rem; }
+.game-screen {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    box-sizing: border-box;
+    width: 100%;
+    height: auto; 
+    
+    /* ↓【重要】上端を基準にするため、下の margin: auto に引っ張られないようにします */
+    margin-top: 0;
+    margin-bottom: auto;
+  }
 
   .game-header {
     display: flex;
@@ -180,26 +191,29 @@
 .kanji-stage {
     width: 100%;
     text-align: center;
-    padding: 1.5rem 1rem;
-    
-    /* 【修正】文字基準のコンパクトな高さ（160px）に戻します */
-    min-height: 160px; 
-    
+    padding: 0 1rem; 
+    min-height: 120px;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    transition: min-height 0.2s ease; /* 切り替わりをスムーズにするおまけ */
+    transition: min-height 0.2s ease;
+    
+    /* ↓【魔法の2行】これによって、上部のタイマーに押し下げられることなく、
+       お題とタイピング欄のセットが画面の「垂直方向のちょうど真ん中」に配置されます */
+    margin-top: auto;
+    margin-bottom: auto;
   }
 
-  .kanji-main {
+.kanji-main {
+    font-size: 11rem; /* ←【超特大化！】5rem から 11rem に大幅アップ！ */
+    font-weight: 800; /* さらに文字の線を太くしてくっきりと */
     font-family: 'Noto Serif JP', serif;
-    font-weight: 700;
-    font-size: clamp(4.5rem, 15vw, 8rem);
-    line-height: 1;
-    color: var(--paper);
-    transition: color 0.1s;
-    display: block;
+    color: var(--paper); /* 白背景（またはテーマ色）に映える色 */
+    line-height: 1.1;
+    margin: 0.5rem 0;
+    display: inline-block;
+    letter-spacing: -0.02em; /* 2文字以上のときの間伸びを防ぐ */
   }
   .kanji-main.correct-flash { color: var(--correct); }
   .kanji-main.wrong-flash { color: var(--wrong); }
@@ -220,37 +234,40 @@
   .stage-image.correct-flash { border-color: var(--correct); transform: scale(1.03); }
   .stage-image.wrong-flash { border-color: var(--wrong); transform: scale(0.97); }
 
-  .reading-hint {
-    margin-top: 1rem;
-    font-size: 1.05rem;
+.reading-hint {
+    font-size: 1.5rem;
     color: var(--mist);
+    font-weight: 500;
     letter-spacing: 0.1em;
-    min-height: 1.5em;
-    opacity: 0;
-    transition: opacity 0.2s;
-    font-family: 'Noto Serif JP', serif;
+    min-height: 2.2rem;
+    /* ↓【修正】お題の漢字にペタッと近づけるため、下のマージンを「0」に */
+    margin-bottom: 0; 
+    margin-top: 1rem;
   }
   .reading-hint.visible { opacity: 1; }
 
   /* Typing input display */
   .typing-area {
     width: 100%;
+        padding-bottom: 20vh;
+  
   }
 
-  .input-display {
-    background: var(--ink-light); 
-    border: 1px solid #e5e5ea;
-    border-radius: 6px;
-    padding: 0.8rem 1.2rem;
-    min-height: 54px;
-    display: flex;
-    align-items: center;
-    gap: 2px;
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 1.4rem;
-    letter-spacing: 0.1em;
-    position: relative;
-    box-shadow: none;
+.input-display {
+    font-size: 2.5rem;       /* タイピング文字の巨大サイズ */
+    font-weight: 900;       
+    font-family: 'SF Pro Display', -apple-system, sans-serif;
+    color: #1d1d1f;         
+    letter-spacing: 0.08em; 
+    text-align: center;     
+    width: 100%;
+    margin-top: 0.3rem;   
+    
+    /* ↓【今回の神修正】高さをフォントサイズと完全に一致させてロックします */
+    height: 4.5rem;          /* ←【追加】高さを4.5remに完全固定 */
+    line-height: 1.0;        /* ←【追加】行の高さによる遊び（上下の余白）をゼロに */
+    
+    /* 以前あった min-height: 5.0rem; などの記述は、この2行に置き換えるため削除します */
   }
 
   .char-done {
@@ -267,9 +284,9 @@
     opacity: 0.3; 
   }
 
-  .input-display.error {
+.input-display.error {
     border-color: var(--wrong);
-    background: #fff1f0;
+    background: transparent;    /* ←【修正】#fff1f0 から transparent（透明）に変更！ */
     animation: shake 0.2s ease;
   }
   @keyframes shake {
@@ -427,7 +444,7 @@
     background: #ffffff;
     border: 1px solid #e5e5ea;
     border-radius: 6px;
-    padding: 0.6rem 1rem;
+    padding: 0rem 1rem;
   }
   .kanji-item:hover { background: #f5f5f7; }
   
@@ -597,7 +614,8 @@
 
   .sep { width: 30px; height: 1px; background: #e5e5ea; margin: 0.5rem 0; }
 
-  .penalty-flash {
+.penalty-flash {
+    display: none !important; /* ←【追加】このエフェクト自体をこの世から消し去ります */
     position: fixed;
     inset: 0;
     background: rgba(255, 59, 48, 0.08);
@@ -917,6 +935,7 @@ let timeRecords = [];
 let isGameRetire = false; // 【✨追加】ゲームをリタイアしたかどうかの状態フラグ
 let isSoundOn = true;
 let missCount = 0; // 【✨追加】ゲーム中の総ミスタイプ数を記憶する変数
+let isFirstKeyStroke = true;
 
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
@@ -1097,6 +1116,7 @@ function startGame() {
   playedKanjiList = [...kanjiList]; 
   timeRecords = []; 
   missCount = 0; // 【✨追加】新しいゲームが始まるので、ミス数を 0 にリセット
+      questionStartTime = elapsedTime; // 1問目の計測開始時間を「0秒」に確定させる
   
   let shuffledQueue = shuffle(kanjiList);
   
@@ -1106,13 +1126,19 @@ function startGame() {
     shuffledQueue[1] = temp;
   }
   
-  gameQueue = shuffledQueue;
+gameQueue = shuffledQueue;
   currentIndex = 0;
   elapsedTime = 0;
   penaltySeconds = 0;
+  
   showScreen('game-screen');
   document.getElementById('progress-total').textContent = gameQueue.length;
-  startTimer();
+  
+  // ✨【今回の修正：追加】画面のタイマー表示を確実に「0.0」にリセットする
+  document.getElementById('timer-display').textContent = '0.0'; 
+  
+  isFirstKeyStroke = true; // 初打鍵の待ち受け状態にします
+  
   loadQuestion(0);
   document.addEventListener('keydown', onKeyDown);
 }
@@ -1143,35 +1169,37 @@ function loadQuestion(idx) {
   const stageArea = document.getElementById('kanji-stage-area');
   stageArea.innerHTML = ''; 
   
-  // 【✨今回のメイン修正点】画像問題と文字問題で外枠のサイズを自動で切り替える
+  // 1. 【一番上】読み（ヒント用の枠）を先に作成して配置
+  const hintDiv = document.createElement('div');
+  hintDiv.className = 'reading-hint';
+  hintDiv.id = 'reading-hint';
+  // 初期状態（エンターを押す前）は中身を空っぽ（非表示）にしておく
+  hintDiv.textContent = ''; 
+  stageArea.appendChild(hintDiv);
+  
+  // 2. 【中央】お題（画像問題 or 文字問題）を判定して配置
   if (item.image) {
-    stageArea.style.minHeight = '400px'; // 画像のときは宇宙を広く！
-    
+    stageArea.style.minHeight = '400px'; 
     const img = document.createElement('img');
     img.src = item.image;
     img.className = 'stage-image';
     img.id = 'stage-target-element';
     stageArea.appendChild(img);
   } else {
-    stageArea.style.minHeight = '160px'; // 文字のときはいつもの引き締まったサイズに！
-    
+    stageArea.style.minHeight = '160px'; 
     const span = document.createElement('span');
     span.className = 'kanji-main';
     span.id = 'stage-target-element';
     span.textContent = item.kanji;
     stageArea.appendChild(span);
   }
-
-  const hintDiv = document.createElement('div');
-  hintDiv.className = 'reading-hint';
-  hintDiv.id = 'reading-hint';
-  stageArea.appendChild(hintDiv);
   
+  // 3. 各種カウンター等の更新
   document.getElementById('progress-current').textContent = idx + 1;
   document.getElementById('progress-bar').style.width = ((idx / gameQueue.length) * 100) + '%';
-  renderInputDisplay();
   
-  questionStartTime = elapsedTime;
+  // 4. 下部のタイピング内容（ローマ字）を中央揃えで描画
+  renderInputDisplay();
 }
 
 function renderInputDisplay() {
@@ -1183,16 +1211,26 @@ function renderInputDisplay() {
     const span = document.createElement('span');
     
     if (i < currentTyped.length) {
+      // ① すでに【入力し終わった】文字：くっきり黒文字
       span.textContent = target[i];
       span.className = 'char-done';
     } else if (i === currentTyped.length) {
+      // ② これから【まさに打ち込む】1文字目
       if (!hintShown) {
-        span.textContent = ' ';
+        span.textContent = ' '; // ヒントなしなら空白
       } else {
-        span.textContent = target[i];
+        span.textContent = target[i]; // ヒントありなら文字を表示
       }
-      span.className = 'char-current';
+      
+      // ✨【ここを修正】ヒントONのときも黒く目立たせないよう、
+      // 打ち終わった文字（char-done）ではないことを示す薄い見た目（char-pending）に固定します
+      span.className = 'char-pending';
+      
+      // 次の1文字であることが視覚的にわかるよう、下線（アンダーライン）の装飾だけを優しく追加
+      span.style.borderBottom = '3px solid var(--paper)';
+      span.style.paddingBottom = '2px';
     } else {
+      // ③ それ以降の【まだ打たない】文字
       if (!hintShown) {
         span.textContent = ' '; 
         span.style.visibility = 'hidden'; 
@@ -1200,7 +1238,7 @@ function renderInputDisplay() {
         span.textContent = target[i];
         span.style.visibility = 'visible'; 
       }
-      span.className = 'char-pending';
+      span.className = 'char-pending'; // 薄いグレー
     }
     container.appendChild(span);
   }
@@ -1212,6 +1250,14 @@ function onKeyDown(e) {
   if (e.key.length !== 1) return;
   const ch = e.key.toLowerCase();
   if (!/[a-z]/.test(ch)) return;
+
+  // 【✨今回のメイン修正点】
+  // 有効なアルファベット（a-z）が押され、かつゲーム中「最初の一文字」だった場合
+  if (isFirstKeyStroke) {
+    isFirstKeyStroke = false; // 二度目以降は通らないようにフラグを折る
+    startTimer();             // ⏱️ ここでついにタイマーを始動！
+    questionStartTime = elapsedTime; // 1問目の計測開始時間を「0秒」に確定させる
+  }
 
   const newTyped = currentTyped + ch;
   const allOpts = currentValidOptions;
@@ -1255,8 +1301,13 @@ playSE(SE.keyWrong);
 
 function flashError() {
   const el = document.getElementById('input-display');
-  el.classList.add('error');
-  setTimeout(() => el.classList.remove('error'), 300);
+  if (el) {
+    el.classList.add('error');
+    setTimeout(() => el.classList.remove('error'), 300);
+  }
+  
+  // 💡 以前この中にあった「画面全体に penalty-flash クラスを仕込む（赤く光らせる）処理」を
+  // 完全に削除（あるいは最初から入っていない状態に固定）しました。
 }
 
 function showHint() {
