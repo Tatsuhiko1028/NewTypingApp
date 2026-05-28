@@ -1,0 +1,1389 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>みんなのタイピング - 人ポケコミュ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;700;900&family=Noto+Sans+JP:wght@300;400;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #ffffff;          
+    --ink-light: #f5f5f7;    
+    --paper: #1d1d1f;        
+    --paper-dark: #424245;   
+    --vermillion: #86868b;   
+    --vermillion-light: #6e6e73;
+    --gold: #1d1d1f;         
+    --gold-light: #1d1d1f;
+    --sage: #e8e8ed; 
+    --mist: #6e6e73;         
+    --correct: #000000;      
+    --wrong: #000000;        
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans JP', sans-serif;
+    background: var(--ink);
+    color: var(--paper);
+    min-height: 100vh;
+    overflow-x: hidden;
+    overflow-y: auto; 
+    position: relative;
+  }
+
+  body::before { display: none; }
+  .bg-kanji { display: none; }
+
+  #app {
+    position: relative;
+    z-index: 1;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* ===== SCREENS ===== */
+  .screen { display: none; width: 100%; max-width: 600px; padding: 0 20px; }
+  
+  #result-screen { 
+    max-width: 1000px !important; 
+    padding: 4rem 20px !important; 
+  }
+  
+  .screen.active { display: flex; flex-direction: column; align-items: center; }
+
+  /* ===== HEADER ===== */
+  .logo {
+    font-family: 'Noto Serif JP', serif;
+    font-weight: 700;
+    font-size: 2.5rem;
+    letter-spacing: 0.1em;
+    color: var(--paper);
+    margin-bottom: 0.2em;
+  }
+  .logo span { color: var(--paper); }
+  .logo-sub {
+    font-size: 0.75rem;
+    letter-spacing: 0.2em;
+    color: var(--mist);
+    text-transform: uppercase;
+    margin-bottom: 2.5rem;
+  }
+
+  /* ===== BUTTONS ===== */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5em;
+    padding: 0.8em 2rem;
+    border: 1px solid #d2d2d7;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 0.9rem;
+    letter-spacing: 0.05em;
+    transition: all 0.15s ease;
+    border-radius: 6px;
+    background: #ffffff;
+    color: var(--paper);
+  }
+  .btn:hover { background: #f5f5f7; border-color: #86868b; }
+  .btn:active { transform: scale(0.98); }
+
+  .btn-primary {
+    background: #1d1d1f;
+    color: #ffffff;
+    border: none;
+    font-weight: 700;
+  }
+  .btn-primary:hover { background: #424245; }
+
+  .btn-secondary {
+    background: #ffffff;
+    color: var(--mist);
+  }
+
+  .btn-icon {
+    background: transparent;
+    color: var(--mist);
+    padding: 0.5em;
+    border: none;
+    font-size: 1.1rem;
+  }
+  .btn-icon:hover { color: var(--wrong); background: #fff1f0; border-radius: 4px; }
+
+  .btn-group { display: flex; gap: 0.8rem; flex-wrap: wrap; justify-content: center; margin-top: 1.5rem; }
+
+  /* ===== CARD ===== */
+  .card {
+    background: #ffffff;
+    border: 1px solid #e5e5ea;
+    border-radius: 8px;
+    padding: 1.5rem;
+    width: 100%;
+  }
+
+  /* ===== HOME SCREEN ===== */
+  #home-screen { gap: 0.5rem; }
+  .menu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; width: 100%; margin-top: 1rem; }
+  .menu-card {
+    background: #ffffff;
+    border: 1px solid #e5e5ea;
+    border-radius: 8px;
+    padding: 1.5rem;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    text-align: center;
+  }
+  .menu-card:hover {
+    background: #f5f5f7;
+    border-color: #86868b;
+  }
+  .menu-card .icon { font-size: 1.5rem; margin-bottom: 0.4rem; }
+  .menu-card .label {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--paper);
+  }
+  .menu-card .desc { font-size: 0.75rem; color: var(--mist); margin-top: 0.2rem; }
+
+  /* ===== GAME SCREEN ===== */
+  #game-screen { gap: 1.5rem; }
+
+  .game-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+  }
+
+  .timer-display {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 2.2rem;
+    color: var(--paper);
+    font-weight: 400;
+  }
+  .timer-display.danger { color: var(--wrong); }
+
+  .progress-info {
+    text-align: right;
+    color: var(--mist);
+    font-size: 0.85rem;
+  }
+  .progress-info strong { color: var(--paper); font-size: 1rem; }
+
+  /* Stage display */
+.kanji-stage {
+    width: 100%;
+    text-align: center;
+    padding: 1.5rem 1rem;
+    
+    /* 【修正】文字基準のコンパクトな高さ（160px）に戻します */
+    min-height: 160px; 
+    
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    transition: min-height 0.2s ease; /* 切り替わりをスムーズにするおまけ */
+  }
+
+  .kanji-main {
+    font-family: 'Noto Serif JP', serif;
+    font-weight: 700;
+    font-size: clamp(4.5rem, 15vw, 8rem);
+    line-height: 1;
+    color: var(--paper);
+    transition: color 0.1s;
+    display: block;
+  }
+  .kanji-main.correct-flash { color: var(--correct); }
+  .kanji-main.wrong-flash { color: var(--wrong); }
+
+  /* 出題画像スタイル */
+.stage-image {
+    max-width: 100%;
+    
+    /* 【修正】280px から 380px へ！これでスマホやPCの画面いっぱいに大きく表示されます */
+    max-height: 380px; 
+    
+    object-fit: contain;
+    border-radius: 6px;
+    border: 1px solid #e5e5ea;
+    background: #f5f5f7;
+    transition: transform 0.1s;
+  }
+  .stage-image.correct-flash { border-color: var(--correct); transform: scale(1.03); }
+  .stage-image.wrong-flash { border-color: var(--wrong); transform: scale(0.97); }
+
+  .reading-hint {
+    margin-top: 1rem;
+    font-size: 1.05rem;
+    color: var(--mist);
+    letter-spacing: 0.1em;
+    min-height: 1.5em;
+    opacity: 0;
+    transition: opacity 0.2s;
+    font-family: 'Noto Serif JP', serif;
+  }
+  .reading-hint.visible { opacity: 1; }
+
+  /* Typing input display */
+  .typing-area {
+    width: 100%;
+  }
+
+  .input-display {
+    background: var(--ink-light); 
+    border: 1px solid #e5e5ea;
+    border-radius: 6px;
+    padding: 0.8rem 1.2rem;
+    min-height: 54px;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 1.4rem;
+    letter-spacing: 0.1em;
+    position: relative;
+    box-shadow: none;
+  }
+
+  .char-done {
+    color: var(--correct);
+  }
+  .char-current {
+    color: var(--paper);
+    background: #e5e5ea; 
+    border-radius: 2px;
+    padding: 0 2px;
+  }
+  .char-pending { 
+    color: var(--paper); 
+    opacity: 0.3; 
+  }
+
+  .input-display.error {
+    border-color: var(--wrong);
+    background: #fff1f0;
+    animation: shake 0.2s ease;
+  }
+  @keyframes shake {
+    0%,100% { transform: translateX(0); }
+    25% { transform: translateX(-4px); }
+    75% { transform: translateX(4px); }
+  }
+
+  .hint-bar {
+    margin-top: 0.6rem;
+    font-size: 0.75rem;
+    color: var(--mist);
+    text-align: center;
+  }
+
+  /* Progress bar */
+  .progress-bar-wrap {
+    width: 100%;
+    height: 3px;
+    background: #e5e5ea;
+    border-radius: 1.5px;
+  }
+  .progress-bar-fill {
+    height: 100%;
+    background: #1d1d1f; 
+    border-radius: 1.5px;
+    transition: width 0.3s ease;
+    box-shadow: none;
+  }
+
+  /* ===== RESULT SCREEN ===== */
+  #result-screen { gap: 1.2rem; text-align: center; }
+
+  .result-title {
+    font-size: 0.9rem;
+    letter-spacing: 0.2em;
+    color: var(--mist);
+    text-transform: uppercase;
+  }
+  .score-big {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: clamp(3.5rem, 10vw, 5.5rem);
+    color: var(--paper);
+    line-height: 1;
+  }
+  .score-unit {
+    font-size: 1.2rem;
+    color: var(--mist);
+  }
+  .result-stats {
+    display: flex;
+    gap: 1.5rem;
+    justify-content: center;
+    color: var(--mist);
+    font-size: 0.85rem;
+  }
+  .result-stats span { color: var(--paper); font-weight: 700; }
+
+  /* リザルトのカード設定 */
+  html body #app #result-screen .card {
+    background: #ffffff;
+    border: 1px solid #e5e5ea;
+    border-radius: 8px;
+    padding: 1.5rem;
+    width: 100%;
+    max-height: none !important;
+    height: auto !important;
+    overflow-y: visible !important;
+  }
+
+  html body #app #result-screen .card::-webkit-scrollbar {
+    display: none !important;
+  }
+
+.result-kanji-item {
+    background: #f5f5f7;
+    padding: 0.5rem 0.6rem;
+    border-radius: 4px;
+    border-left: 2px solid #1d1d1f;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    
+    /* 【修正】一律の高さ制限を削除し、文字のときは自動で低くなるようにします */
+    /* min-height: 85px; ← この行を削除、またはコメントアウト */
+  }
+  .result-kanji-item .r-kanji {
+    font-weight: 700;
+    color: var(--paper);
+    text-align: left;
+    font-size: 0.9rem;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .result-kanji-item .r-image {
+    max-height: 55px; /* ←【修正】40pxから55pxに拡大！ */
+    max-width: 100%;
+    object-fit: contain;
+    border-radius: 2px;
+    border: 1px solid #d2d2d7;
+    margin-bottom: 2px;
+  }
+  .result-kanj2-item .r-reading {
+    font-size: 0.75rem;
+    color: var(--mist);
+    text-align: left;
+    width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* ===== SETTINGS SCREEN ===== */
+  #settings-screen { 
+    gap: 1.2rem; 
+    max-width: 700px; 
+    padding: 4rem 20px !important; 
+  }
+  .settings-title {
+    font-weight: 700;
+    font-size: 1.3rem;
+    letter-spacing: 0.1em;
+    align-self: flex-start;
+    display: flex;
+    align-items: center;
+    width: 100%;
+  }
+  .settings-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: #e5e5ea;
+    margin-left: 1rem;
+  }
+
+  .kanji-list {
+    width: 100%;
+    max-height: 380px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+  .kanji-list::-webkit-scrollbar { width: 4px; }
+  .kanji-list::-webkit-scrollbar-track { background: transparent; }
+  .kanji-list::-webkit-scrollbar-thumb { background: #d2d2d7; border-radius: 2px; }
+
+  .kanji-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    background: #ffffff;
+    border: 1px solid #e5e5ea;
+    border-radius: 6px;
+    padding: 0.6rem 1rem;
+  }
+  .kanji-item:hover { background: #f5f5f7; }
+  
+  .kanji-item .ki-char {
+    font-family: 'Noto Serif JP', serif;
+    font-weight: 700;
+    font-size: 1.4rem;
+    min-width: 2.5rem;
+    text-align: center;
+    color: var(--paper);
+  }
+  .kanji-item .ki-thumb {
+    width: 45px;
+    height: 35px;
+    object-fit: contain;
+    border: 1px solid #d2d2d7;
+    border-radius: 3px;
+    background: #f5f5f7;
+  }
+  .kanji-item .ki-no-thumb {
+    width: 45px;
+    font-size: 0.7rem;
+    color: var(--mist);
+    text-align: center;
+  }
+  
+  .kanji-item .ki-reading {
+    flex: 1;
+    color: var(--mist);
+    font-size: 0.85rem;
+    text-align: left;
+  }
+  .kanji-item .ki-reading strong {
+    color: var(--paper);
+    font-family: 'Share Tech Mono', monospace;
+  }
+
+.add-form {
+    display: flex;
+    gap: 0.5rem;
+    width: 100%;
+    flex-wrap: wrap;
+    /* 【追加】すべての入力欄やボタンの「下端（ベースライン）」を強制的にビシッと一直線に揃えます */
+    align-items: flex-end; 
+  }
+
+  .field-group { display: flex; flex-direction: column; gap: 0.3rem; flex: 1; min-width: 120px; }
+  .field-group label { font-size: 0.75rem; color: var(--mist); text-align: left; }
+  
+  .field-input {
+    background: #ffffff;
+    border: 1px solid #d2d2d7;
+    border-radius: 6px;
+    padding: 0.6rem 0.8rem;
+    color: var(--paper);
+    font-size: 0.9rem;
+    outline: none;
+    transition: border-color 0.1s;
+    /* 【追加】入力欄の高さを38pxに固定してボタンと一致させます */
+    height: 38px; 
+  }
+  .field-input:focus { border-color: #000000; }
+  .field-input::placeholder { color: #ccc; }
+
+  /* 各種画像選択用ボタンスタイル */
+  .file-label-btn {
+    background: #ffffff;
+    border: 1px solid #d2d2d7;
+    border-radius: 6px;
+    padding: 0.6rem 0.8rem;
+    font-size: 0.85rem;
+    cursor: pointer;
+    text-align: center;
+    white-space: nowrap;
+    color: var(--mist);
+    transition: all 0.1s;
+
+    /* 高さを入力欄と完全に一致させ、ボタン内の文字を真ん中に配置 */
+    height: 38px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    
+    /* 【追加】ボタンが下に沈み込むバグをリセットします */
+    vertical-align: bottom; 
+    margin: 0;
+  }
+  .file-label-btn:hover { background: #f5f5f7; color: var(--paper); }
+  .file-label-btn.loaded { border-color: var(--correct); color: var(--correct); background: #f1fbf5; }
+
+  .io-row {
+    display: flex;
+    gap: 0.5rem;
+    width: 100%;
+  }
+
+  /* ===== TOAST ===== */
+  #toast {
+    position: fixed;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: #1d1d1f;
+    color: #ffffff;
+    padding: 0.6rem 1.2rem;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    transition: transform 0.2s ease;
+    z-index: 999;
+  }
+  #toast.show { transform: translateX(-50%) translateY(0); }
+
+  .empty-state {
+    text-align: center;
+    color: var(--mist);
+    padding: 1.5rem;
+    font-size: 0.85rem;
+    border: 1px dashed #e5e5ea;
+    border-radius: 6px;
+  }
+
+  .screen.active > * {
+    animation: fadeInUp 0.3s ease backwards;
+  }
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .sep { width: 30px; height: 1px; background: #e5e5ea; margin: 0.5rem 0; }
+
+  .penalty-flash {
+    position: fixed;
+    inset: 0;
+    background: rgba(255, 59, 48, 0.08);
+    pointer-events: none;
+    z-index: 999;
+    animation: penaltyAnim 0.4s ease;
+  }
+  @keyframes penaltyAnim { 0% { opacity: 1; } 100% { opacity: 0; } }
+
+  /* インポートファイル用隠しクラス */
+  #file-import, #input-image {
+    display: none !important;
+  }
+</style>
+</head>
+<body>
+
+<div id="app">
+
+  <div id="home-screen" class="screen active">
+    <div class="logo">みんなの<span>タイピング</span></div>
+    <div class="logo-sub">Shin Typing</div>
+    
+    <div style="color: var(--gold-light); margin-bottom: 2rem; font-family: 'Noto Serif JP', serif; text-align: center;">
+      現在の設定：<span id="start-template-name" style="font-weight: bold;">デフォルトのお題</span>
+    </div>
+
+    <div class="menu-grid">
+      <div class="menu-card" onclick="startGame()">
+        <div class="label">開始</div>
+        <div class="desc">タイピング開始</div>
+      </div>
+      <div class="menu-card" onclick="showScreen('settings-screen')">
+        <div class="label">設定</div>
+        <div class="desc">お題を編集</div>
+      </div>
+    </div>
+    <div class="btn-group">
+      <div id="kanji-count-display" style="color:var(--mist);font-size:0.85rem;margin-top:0.5rem;letter-spacing:0.08em;"></div>
+    </div>
+  </div>
+
+  <div id="game-screen" class="screen">
+    <div class="game-header">
+      <div class="timer-display" id="timer-display">0.0</div>
+      <div class="progress-info">
+        <div><strong id="progress-current">0</strong> / <span id="progress-total">0</span></div>
+        <div>問</div>
+      </div>
+    </div>
+
+    <div class="progress-bar-wrap">
+      <div class="progress-bar-fill" id="progress-bar" style="width:0%"></div>
+    </div>
+
+    <div class="kanji-stage" id="kanji-stage-area">
+      </div>
+
+    <div class="typing-area">
+      <div class="input-display" id="input-display"></div>
+      <div class="hint-bar">Enterキー → 読みを表示（+5秒ペナルティ）</div>
+    </div>
+  </div>
+
+  <div id="result-screen" class="screen">
+    <div class="result-title">結果</div>
+    <div>
+      <div class="score-big" id="result-score">0.0</div>
+      <div class="score-unit">秒</div>
+    </div>
+    <div class="sep" style="margin:0 auto;"></div>
+    
+    <div class="card" style="margin: 1.5rem 0; text-align: left;">
+      <h3 id="result-template-title" style="color: var(--gold); border-bottom: 1px solid rgba(0,0,0,0.1); padding-bottom: 0.5rem; margin-bottom: 1rem; font-family: 'Noto Serif JP', serif; font-size: 1.1rem;">
+        テンプレート: 未設定
+      </h3>
+      <div id="result-kanji-list" style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.8rem; font-size: 0.95rem;">
+      </div>
+    </div>
+
+    <div class="result-stats">
+      <div>問題数 <span id="res-total">0</span></div>
+      <div>ペナルティ <span id="res-penalty">0</span>秒</div>
+      <div>最長タイム <span id="res-slowest" style="color: var(--wrong); font-weight: bold;">なし</span></div>
+    </div>
+    
+    <div class="btn-group">
+      <button class="btn btn-secondary" onclick="shareOnX()" style="border-color: #1d1d1f; color: #1d1d1f; font-weight: 700;">𝕏 で成果を共有</button>
+      <button class="btn btn-primary" onclick="startGame()">もう一度</button>
+      <button class="btn btn-secondary" onclick="showScreen('home-screen')">ホームへ</button>
+    </div>
+  </div>
+
+  <div id="settings-screen" class="screen">
+    <div class="settings-title" id="settings-title-text">お題設定</div>
+
+    <div class="card" style="margin-bottom: 1rem; text-align: left; background: var(--ink-light);">
+      <div style="font-size:0.8rem;color:var(--mist);letter-spacing:0.05em;margin-bottom:0.5rem;">テンプレート名（設定の名前）</div>
+      <div style="display: flex; gap: 0.5rem;">
+        <input type="text" id="input-template-name" placeholder="例: 小学校1年生、難読漢字など" class="field-input" style="flex: 1;">
+        <button class="btn btn-primary" onclick="saveTemplateName()" style="padding: 0 1.5rem; white-space: nowrap;">名前を保存</button>
+      </div>
+    </div>
+
+    <div class="card" style="gap:1rem;display:flex;flex-direction:column;">
+      <div style="font-size:0.8rem;color:var(--mist);letter-spacing:0.05em;text-align:left;">出題を追加 (複数読みは「/」区切り)</div>
+      <div class="add-form">
+        <div class="field-group" style="flex:0 0 110px;">
+          <label>お題 / 表示文字</label>
+          <input class="field-input" id="input-kanji" placeholder="例：山" maxlength="20">
+        </div>
+        <div class="field-group" style="flex:1; min-width:140px;">
+          <label>読み（ひらがな）</label>
+          <input class="field-input" id="input-reading" placeholder="例：やま/さん" maxlength="40">
+        </div>
+        <div class="field-group" style="flex:0 0 90px; justify-content: flex-end;">
+          <label style="margin-bottom:0.3rem;">画像(任意)</label>
+          <label for="input-image" id="image-label-btn" class="file-label-btn">📁 選択</label>
+          <input type="file" id="input-image" accept="image/*" onchange="handleImageUpload(event)">
+        </div>
+        <div style="display:flex;align-items:flex-end;">
+          <button class="btn btn-primary" onclick="addKanji()" style="white-space:nowrap; padding: 0.6rem 1.2rem;">追加</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="kanji-list" class="kanji-list" style="margin-top: 1rem;">
+    </div>
+
+    <div class="io-row" style="margin-top: 1rem;">
+      <button class="btn btn-secondary" onclick="exportJSON()" style="flex:1;">⬇ JSONエクスポート</button>
+      <button class="btn btn-secondary" onclick="document.getElementById('file-import').click()" style="flex:1;">⬆ JSONインポート</button>
+      <input type="file" id="file-import" accept=".json" onchange="importJSON(event)">
+    </div>
+
+    <div class="btn-group">
+      <button class="btn btn-secondary" onclick="showScreen('home-screen')">← ホームへ戻る</button>
+    </div>
+  </div>
+
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ========== ROMANIZATION TABLE ==========
+const KANA_TO_ROMAJI = {
+  'あ': ['a'], 'い': ['i'], 'う': ['u'], 'え': ['e'], 'お': ['o'],
+  'か': ['ka'], 'き': ['ki'], 'く': ['ku'], 'け': ['ke'], 'こ': ['ko'],
+  'さ': ['sa'], 'し': ['shi','si'], 'す': ['su'], 'せ': ['se'], 'そ': ['so'],
+  'た': ['ta'], 'ち': ['chi','ti'], 'つ': ['tsu','tu'], 'て': ['te'], 'と': ['to'],
+  'な': ['na'], 'に': ['ni'], 'ぬ': ['nu'], 'ね': ['ne'], 'の': ['no'],
+  'は': ['ha'], 'ひ': ['hi'], 'ふ': ['fu','hu'], 'へ': ['he'], 'ほ': ['ho'],
+  'ま': ['ma'], 'み': ['mi'], 'む': ['mu'], 'め': ['me'], 'も': ['mo'],
+  'や': ['ya'], 'ゆ': ['yu'], 'よ': ['yo'],
+  'ら': ['ra'], 'り': ['ri'], 'る': ['ru'], 'れ': ['re'], 'ろ': ['ro'],
+  'わ': ['wa'], 'ゐ': ['wi'], 'ゑ': ['we'], 'を': ['wo'],
+  'ん': ['nn','n'],
+  'が': ['ga'], 'ぎ': ['gi'], 'ぐ': ['gu'], 'げ': ['ge'], 'ご': ['go'],
+  'ざ': ['za'], 'じ': ['ji','zi'], 'ず': ['zu'], 'ぜ': ['ze'], 'ぞ': ['zo'],
+  'だ': ['da'], 'ぢ': ['di'], 'づ': ['du','zu'], 'で': ['de'], 'ど': ['do'],
+  'ば': ['ba'], 'び': ['bi'], 'ぶ': ['bu'], 'べ': ['be'], 'ぼ': ['bo'],
+  'ぱ': ['pa'], 'ぴ': ['pi'], 'ぷ': ['pu'], 'ぺ': ['pe'], 'ぽ': ['po'],
+  'きゃ': ['kya'], 'きゅ': ['kyu'], 'きょ': ['kyo'],
+  'しゃ': ['sha','sya'], 'しゅ': ['shu','syu'], 'しょ': ['sho','syo'],
+  'ちゃ': ['tya','cha','cya'], 'ちゅ': ['tyu','chu','cyu'], 'ちょ': ['tyo','cho','cyo'],
+  'にゃ': ['nya'], 'にゅ': ['nyu'], 'にょ': ['nyo'],
+  'ひゃ': ['hya'], 'ひゅ': ['hyu'], 'ひょ': ['hyo'],
+  'みゃ': ['mya'], 'みゅ': ['myu'], 'みょ': ['myo'],
+  'りゃ': ['rya'], 'りゅ': ['ryu'], 'りょ': ['ryo'],
+  'ぎゃ': ['gya'], 'ぎゅ': ['gyu'], 'ぎょ': ['gyo'],
+  'じゃ': ['ja','jya','zya'], 'じゅ': ['ju','jyu','zyu'], 'じょ': ['jo','jyo','zyo'],
+  'びゃ': ['bya'], 'びゅ': ['byu'], 'びょ': ['byo'],
+  'ぴゃ': ['pya'], 'ぴゅ': ['pyu'], 'ぴょ': ['pyo'],
+  'ふぁ': ['fa'], 'ふぃ': ['fi'], 'ふぇ': ['fe'], 'ふぉ': ['fo'],
+  'ぁ': ['xa','la'], 'ぃ': ['xi','li'], 'ぅ': ['xu','lu'], 'ぇ': ['xe','le'], 'ぉ': ['xo','lo'],
+  'っ': ['xtu','ltu','ltsu','xtsu'],
+};
+
+function kanaToRomajiOptions(readingInput) {
+  const readings = typeof readingInput === 'string' 
+    ? readingInput.split('/') 
+    : (Array.isArray(readingInput) ? readingInput : [readingInput]);
+    
+  let allCombinedOptions = [];
+
+  readings.forEach(r => {
+    if (r.trim().length > 0) {
+      allCombinedOptions = allCombinedOptions.concat(buildAllPaths(r.trim()));
+    }
+  });
+
+  return [...new Set(allCombinedOptions)];
+}
+
+function buildAllPaths(kana) {
+  if (!kana || kana.length === 0) return [''];
+  const results = [];
+  
+  if (kana.length >= 2) {
+    const twoChar = kana.slice(0, 2);
+    if (KANA_TO_ROMAJI[twoChar]) {
+      const tails = buildAllPaths(kana.slice(2));
+      for (const prefix of KANA_TO_ROMAJI[twoChar]) {
+        for (const tail of tails) {
+          results.push(prefix + tail);
+        }
+      }
+    }
+  }
+  
+  const oneChar = kana[0];
+  
+  if (oneChar === 'っ') {
+    if (kana.length >= 2) {
+      const tails = buildAllPaths(kana.slice(1));
+      for (const tail of tails) {
+        if (tail.length > 0 && /[bcdfghjklmpqrstvwxyz]/.test(tail[0])) {
+          results.push(tail[0] + tail);
+        }
+      }
+    }
+    const xtuTails = buildAllPaths(kana.slice(1));
+    for (const tail of xtuTails) {
+      results.push('xtu' + tail);
+      results.push('ltu' + tail);
+    }
+  } else if (oneChar === 'ん') {
+    const tails = buildAllPaths(kana.slice(1));
+    for (const tail of tails) {
+      results.push('nn' + tail);
+      if (!tail || !/^[aiueony]/.test(tail)) {
+        results.push('n' + tail);
+      }
+    }
+  } else if (KANA_TO_ROMAJI[oneChar]) {
+    const tails = buildAllPaths(kana.slice(1));
+    for (const prefix of KANA_TO_ROMAJI[oneChar]) {
+      for (const tail of tails) {
+        results.push(prefix + tail);
+      }
+    }
+  } else {
+    const tails = buildAllPaths(kana.slice(1));
+    for (const tail of tails) {
+      results.push(oneChar + tail);
+    }
+  }
+  return [...new Set(results)];
+}
+
+// ========== DEFAULT DATA ==========
+const DEFAULT_KANJI = [
+  { kanji: '山', reading: 'やま/さん', image: '' },
+  { kanji: '川', reading: 'かわ', image: '' },
+  { kanji: '火', reading: 'ひ', image: '' },
+  { kanji: '水', reading: 'みず', image: '' },
+  { kanji: '木', reading: 'き', image: '' },
+];
+
+// ========== STATE ==========
+let kanjiList = JSON.parse(localStorage.getItem('kanji-dojo-list') || JSON.stringify(DEFAULT_KANJI));
+let templateName = 'デフォルトのお題';
+let playedTemplateName = ''; 
+let playedKanjiList = [];
+let gameQueue = [];
+let currentIndex = 0;
+let timerInterval = null;
+let elapsedTime = 0;
+let penaltySeconds = 0;
+let currentTyped = '';
+let currentValidOptions = [];
+let currentDisplayOption = '';
+let hintShown = false;
+let currentUploadedImageBase64 = ''; // 一時保存用の画像変数
+
+let questionStartTime = 0;
+let timeRecords = [];
+let isGameRetire = false; // 【✨追加】ゲームをリタイアしたかどうかの状態フラグ
+
+// ========== UTILS ==========
+function saveKanjiList() {
+  localStorage.setItem('kanji-dojo-list', JSON.stringify(kanjiList));
+}
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  if (id === 'settings-screen') renderKanjiList();
+  if (id === 'home-screen') updateHomeCount();
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  if (!t) return;
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+function updateHomeCount() {
+  const el = document.getElementById('kanji-count-display');
+  if(el) el.textContent = `登録問題：${kanjiList.length}問`;
+  
+  const settingsTitle = document.getElementById('settings-title-text');
+  if (settingsTitle) {
+    settingsTitle.textContent = `お題設定 (${kanjiList.length}問)`;
+  }
+}
+
+function saveTemplateName() {
+  const input = document.getElementById('input-template-name').value.trim();
+  templateName = input || 'デフォルトのお題';
+  localStorage.setItem('kanji-dojo-template-name', templateName);
+  document.getElementById('start-template-name').textContent = templateName;
+  showToast('テンプレート名を保存しました');
+}
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+// 画像の読み込み処理
+function handleImageUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const img = new Image();
+    img.onload = function() {
+      // ===== 📸 画像の自動縮小（リサイズ）システム =====
+      const MAX_WIDTH = 800; 
+      let width = img.width;
+      let height = img.height;
+      
+      if (width > MAX_WIDTH) {
+        height = Math.round((height * MAX_WIDTH) / width);
+        width = MAX_WIDTH;
+      }
+      
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+
+      // 【✨今回の修正点】透過素材の背景を真っ白にする処理
+      ctx.fillStyle = '#ffffff'; // 白色を指定
+      ctx.fillRect(0, 0, width, height); // 先にキャンバス全体を白く塗りつぶす
+
+      // 白い背景の上に元の画像を重ねて描画（透明な部分が白になります）
+      ctx.drawImage(img, 0, 0, width, height);
+      
+      // JPEG形式のBase64データに変換
+      currentUploadedImageBase64 = canvas.toDataURL('image/jpeg', 0.8);
+      
+      // 選択済みの見た目にする処理
+      const btn = document.getElementById('image-label-btn');
+      if (btn) {
+        btn.textContent = '✔️ 選択済';
+        btn.classList.add('loaded');
+      }
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+// ========== GAME LOGIC ==========
+function startGame() {
+  if (kanjiList.length === 0) {
+    showScreen('settings-screen');
+    showToast('先にお題を登録してください');
+    return;
+  }
+  
+  const lastKanji = gameQueue.length > 0 && currentIndex >= gameQueue.length 
+    ? gameQueue[gameQueue.length - 1].kanji 
+    : null;
+  
+  playedTemplateName = templateName;
+  playedKanjiList = [...kanjiList]; 
+  timeRecords = []; 
+  
+  let shuffledQueue = shuffle(kanjiList);
+  
+  if (lastKanji && shuffledQueue.length > 1 && shuffledQueue[0].kanji === lastKanji) {
+    const temp = shuffledQueue[0];
+    shuffledQueue[0] = shuffledQueue[1];
+    shuffledQueue[1] = temp;
+  }
+  
+  gameQueue = shuffledQueue;
+  currentIndex = 0;
+  elapsedTime = 0;
+  penaltySeconds = 0;
+  showScreen('game-screen');
+  document.getElementById('progress-total').textContent = gameQueue.length;
+  startTimer();
+  loadQuestion(0);
+  document.addEventListener('keydown', onKeyDown);
+}
+
+function startTimer() {
+  clearInterval(timerInterval);
+  timerInterval = setInterval(() => {
+    elapsedTime += 0.1;
+    updateTimerDisplay();
+  }, 100);
+}
+
+function updateTimerDisplay() {
+  const el = document.getElementById('timer-display');
+  el.textContent = elapsedTime.toFixed(1);
+  if (elapsedTime > 60) el.classList.add('danger');
+  else el.classList.remove('danger');
+}
+
+function loadQuestion(idx) {
+  const item = gameQueue[idx];
+  currentTyped = '';
+  hintShown = false;
+  
+  currentValidOptions = kanaToRomajiOptions(item.reading);
+  currentDisplayOption = currentValidOptions[0] || item.reading;
+  
+  const stageArea = document.getElementById('kanji-stage-area');
+  stageArea.innerHTML = ''; 
+  
+  // 【✨今回のメイン修正点】画像問題と文字問題で外枠のサイズを自動で切り替える
+  if (item.image) {
+    stageArea.style.minHeight = '400px'; // 画像のときは宇宙を広く！
+    
+    const img = document.createElement('img');
+    img.src = item.image;
+    img.className = 'stage-image';
+    img.id = 'stage-target-element';
+    stageArea.appendChild(img);
+  } else {
+    stageArea.style.minHeight = '160px'; // 文字のときはいつもの引き締まったサイズに！
+    
+    const span = document.createElement('span');
+    span.className = 'kanji-main';
+    span.id = 'stage-target-element';
+    span.textContent = item.kanji;
+    stageArea.appendChild(span);
+  }
+
+  const hintDiv = document.createElement('div');
+  hintDiv.className = 'reading-hint';
+  hintDiv.id = 'reading-hint';
+  stageArea.appendChild(hintDiv);
+  
+  document.getElementById('progress-current').textContent = idx + 1;
+  document.getElementById('progress-bar').style.width = ((idx / gameQueue.length) * 100) + '%';
+  renderInputDisplay();
+  
+  questionStartTime = elapsedTime;
+}
+
+function renderInputDisplay() {
+  const container = document.getElementById('input-display');
+  const target = currentDisplayOption;
+  container.innerHTML = '';
+  
+  for (let i = 0; i < target.length; i++) {
+    const span = document.createElement('span');
+    
+    if (i < currentTyped.length) {
+      span.textContent = target[i];
+      span.className = 'char-done';
+    } else if (i === currentTyped.length) {
+      if (!hintShown) {
+        span.textContent = ' ';
+      } else {
+        span.textContent = target[i];
+      }
+      span.className = 'char-current';
+    } else {
+      if (!hintShown) {
+        span.textContent = ' '; 
+        span.style.visibility = 'hidden'; 
+      } else {
+        span.textContent = target[i];
+        span.style.visibility = 'visible'; 
+      }
+      span.className = 'char-pending';
+    }
+    container.appendChild(span);
+  }
+}
+
+function onKeyDown(e) {
+  if (e.key === 'Enter') {
+    showHint();
+    return;
+  }
+if (e.key === 'Escape') {
+    endGame(true); // 【修正】trueを渡して「中断（ギブアップ）」であることを伝えます
+    return;
+  }
+  if (e.key.length !== 1) return;
+  const ch = e.key.toLowerCase();
+  if (!/[a-z]/.test(ch)) return;
+
+  const newTyped = currentTyped + ch;
+  const allOpts = currentValidOptions;
+  
+  const complete = allOpts.find(opt => opt === newTyped);
+  if (complete) {
+    currentTyped = newTyped;
+    currentDisplayOption = complete;
+    renderInputDisplay();
+    
+    const questionDuration = elapsedTime - questionStartTime;
+    timeRecords.push({
+      kanji: gameQueue[currentIndex].kanji,
+      time: questionDuration
+    });
+    
+    advanceQuestion();
+    return;
+  }
+  
+  const prefixMatch = allOpts.filter(opt => opt.startsWith(newTyped));
+  if (prefixMatch.length > 0) {
+    currentTyped = newTyped;
+    currentDisplayOption = prefixMatch[0];
+    renderInputDisplay();
+  } else {
+    flashError();
+  }
+}
+
+function flashError() {
+  const el = document.getElementById('input-display');
+  el.classList.add('error');
+  setTimeout(() => el.classList.remove('error'), 300);
+}
+
+function showHint() {
+  if (hintShown) return;
+  hintShown = true;
+  elapsedTime += 5;
+  penaltySeconds += 5;
+  updateTimerDisplay();
+  
+  document.getElementById('reading-hint').textContent = gameQueue[currentIndex].reading;
+  document.getElementById('reading-hint').classList.add('visible');
+  
+  renderInputDisplay();
+  showToast('ヒント表示 +5秒ペナルティ');
+}
+
+function advanceQuestion() {
+  currentIndex++;
+  if (currentIndex >= gameQueue.length) {
+    endGame();
+  } else {
+    loadQuestion(currentIndex);
+  }
+}
+
+function endGame(isEscaped = false) {
+  clearInterval(timerInterval);
+  document.removeEventListener('keydown', onKeyDown);
+  
+  // 【✨追加】リタイア状態をフラグに記憶します
+  isGameRetire = isEscaped; 
+  
+  document.getElementById('progress-bar').style.width = '100%';
+  document.getElementById('res-total').textContent = gameQueue.length;
+  document.getElementById('res-penalty').textContent = penaltySeconds;
+
+  const scoreBig = document.getElementById('result-score');
+  const scoreUnit = document.querySelector('.score-unit');
+  
+  if (isEscaped) {
+    scoreBig.textContent = 'リタイア';
+    if (scoreUnit) scoreUnit.style.display = 'none'; 
+    showToast('ゲームを中断しました');
+  } else {
+    scoreBig.textContent = elapsedTime.toFixed(1);
+    if (scoreUnit) scoreUnit.style.display = 'inline-block'; 
+  }
+
+  document.getElementById('result-template-title').textContent = `テンプレート: ${playedTemplateName}`;
+  
+  const slowestContainer = document.getElementById('res-slowest');
+  if (slowestContainer && timeRecords.length > 0) {
+    const slowest = timeRecords.reduce((max, item) => item.time > max.time ? item : max, timeRecords[0]);
+    slowestContainer.textContent = `${slowest.kanji} (${slowest.time.toFixed(1)}秒)`;
+  } else if (slowestContainer) {
+    slowestContainer.textContent = 'なし';
+  }
+
+  const listContainer = document.getElementById('result-kanji-list');
+  listContainer.innerHTML = ''; 
+  
+  playedKanjiList.forEach(item => {
+    const div = document.createElement('div');
+    div.className = 'result-kanji-item';
+    
+    // 画像があれば画像を一覧に置き、枠を高めにする
+    if (item.image) {
+      div.style.minHeight = '85px'; 
+      const img = document.createElement('img');
+      img.className = 'r-image';
+      img.src = item.image;
+      div.appendChild(img);
+    } else {
+      div.style.minHeight = 'auto'; 
+      const kanjiSpan = document.createElement('span');
+      kanjiSpan.className = 'r-kanji';
+      kanjiSpan.textContent = item.kanji;
+      div.appendChild(kanjiSpan);
+    }
+    
+    const readingSpan = document.createElement('span');
+    readingSpan.className = 'r-reading';
+    readingSpan.textContent = item.reading;
+    
+    div.appendChild(readingSpan);
+    listContainer.appendChild(div);
+  });
+
+  showScreen('result-screen');
+}
+
+// ========== SETTINGS ==========
+function renderKanjiList() {
+  const container = document.getElementById('kanji-list');
+  container.innerHTML = '';
+  if (kanjiList.length === 0) {
+    container.innerHTML = '<div class="empty-state">出題が登録されていません</div>';
+    return;
+  }
+  kanjiList.forEach((item, i) => {
+    const opts = kanaToRomajiOptions(item.reading);
+    const romajiPreview = opts.slice(0, 3).join(' / ');
+    const div = document.createElement('div');
+    div.className = 'kanji-item';
+    
+    // リスト内の画像サムネイルの有無
+    const mediaHTML = item.image 
+      ? `<img src="${item.image}" class="ki-thumb">` 
+      : `<div class="ki-no-thumb">(文字)</div>`;
+
+    div.innerHTML = `
+      <div class="ki-char">${item.kanji || '-'}</div>
+      ${mediaHTML}
+      <div class="ki-reading">
+        ${item.reading}<br>
+        <strong>${romajiPreview}</strong>
+        ${opts.length > 3 ? `<span style="color:var(--mist);font-size:0.75rem;"> 他${opts.length - 3}通り</span>` : ''}
+      </div>
+      <button class="btn btn-icon" onclick="deleteKanji(${i})" title="削除">✕</button>
+    `;
+    container.appendChild(div);
+  });
+}
+
+function addKanji() {
+  let kanji = document.getElementById('input-kanji').value.trim();
+  const reading = document.getElementById('input-reading').value.trim();
+  
+  if (!reading) { 
+    showToast('読み（タイピングの答え）を入力してください'); 
+    return; 
+  }
+  if (!kanji && !currentUploadedImageBase64) { 
+    showToast('お題、または画像を選択してください'); 
+    return; 
+  }
+  if (!kanji) kanji = '（画像問題）';
+
+  // 1. リストに出題データを追加
+  kanjiList.push({ 
+    kanji: kanji, 
+    reading: reading,
+    image: currentUploadedImageBase64 
+  });
+  
+  // 2. ローカルストレージに保存
+  saveKanjiList();
+  
+  // 3. 【修正・強化】入力フォームと選択された画像内容を完全に初期化（リセット）
+  document.getElementById('input-kanji').value = '';
+  document.getElementById('input-reading').value = '';
+  
+  // 実際のファイル入力パーツを空にする
+  const fileInput = document.getElementById('input-image');
+  if (fileInput) fileInput.value = ''; 
+  
+  // 内部の画像データ変数を空っぽにする
+  currentUploadedImageBase64 = '';
+  
+  // 見た目のボタン（📁 選択）を初期状態に戻す
+  const labelBtn = document.getElementById('image-label-btn');
+  if (labelBtn) {
+    labelBtn.textContent = '📁 選択';
+    labelBtn.classList.remove('loaded');
+  }
+  
+  // 4. 画面の更新
+  renderKanjiList();
+  updateHomeCount();
+  showToast(`新しく出題を追加しました`);
+}
+
+function deleteKanji(i) {
+  const item = kanjiList[i];
+  kanjiList.splice(i, 1);
+  saveKanjiList();
+  renderKanjiList();
+  updateHomeCount();
+  showToast(`出題を削除しました`);
+}
+
+function exportJSON() {
+  const dataObject = {
+    version: 1,
+    templateName: templateName, 
+    kanji: kanjiList
+  };
+  
+  const data = JSON.stringify(dataObject, null, 2);
+  const blob = new Blob([data], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `みんなのタイピング:${templateName}.json`;
+  
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('JSONをエクスポートしました');
+}
+
+function importJSON(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const data = JSON.parse(e.target.result);
+      
+      const list = data.kanji || data;
+      if (!Array.isArray(list)) throw new Error('invalid');
+      
+      // 画像付きJSONの読み込みに対応
+      kanjiList = list.filter(item => item.reading && (item.kanji || item.image));
+      saveKanjiList();
+      
+      if (data.templateName) {
+        templateName = data.templateName;
+        localStorage.setItem('kanji-dojo-template-name', templateName);
+        
+        const inputField = document.getElementById('input-template-name');
+        const startLabel = document.getElementById('start-template-name');
+        if (inputField) inputField.value = templateName;
+        if (startLabel) startLabel.textContent = templateName;
+      }
+      
+      renderKanjiList();
+      updateHomeCount();
+      showToast(`${kanjiList.length}件の設定をインポートしました`);
+    } catch {
+      showToast('JSONの読み込みに失敗しました');
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
+}
+
+// 𝕏シェア用関数
+function shareOnX() {
+  const totalCount = gameQueue.length;
+  let text = '';
+  
+  // 【✨今回のメイン修正点】リタイア時と通常クリア時でXの投稿内容を分岐させる
+  if (isGameRetire) {
+    // Escapeキーで中断（リタイア）した場合の文章
+    text = `${playedTemplateName} に挑戦しましたが、途中でリタイアしました。`;
+  } else {
+    // 通常クリアした場合の文章
+    const scoreTime = elapsedTime.toFixed(1);
+    
+    let slowestText = 'なし';
+    if (timeRecords.length > 0) {
+      const slowest = timeRecords.reduce((max, item) => item.time > max.time ? item : max, timeRecords[0]);
+      slowestText = `「${slowest.kanji}」の ${slowest.time.toFixed(1)}秒`;
+    }
+    
+    text = `${playedTemplateName} の全${totalCount}問をクリアしました。所要時間は【${scoreTime}秒】です。\n最も入力に時間がかかった漢字は、${slowestText}でした。`;
+  }
+
+  const hashtags = 'みんなのタイピング';
+  const shareUrl = `https://x.com/intent/tweet?text=${encodeURIComponent(text)}&hashtags=${encodeURIComponent(hashtags)}`;
+
+  window.open(shareUrl, '_blank');
+}
+
+// 起動時および初期設定の読み込み
+(function init() {
+  const savedTemplate = localStorage.getItem('kanji-dojo-template-name');
+  if (savedTemplate) {
+    templateName = savedTemplate;
+  }
+  
+  window.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('input-template-name').value = templateName;
+    document.getElementById('start-template-name').textContent = templateName;
+    updateHomeCount();
+  });
+})();
+
+//document.getElementById('input-reading').addEventListener('keydown', e => {
+//  if (e.key === 'Enter') addKanji();
+//});
+</script>
+</body>
+</html>
