@@ -611,6 +611,31 @@
   #file-import, #input-image {
     display: none !important;
   }
+
+  .home-x-link {
+  position: absolute;
+  right: 24px;
+  bottom: 24px;
+  font-size: 1.3rem;
+  color: var(--mist); /* 初期状態は少し控えめなグレー */
+  text-decoration: none;
+  font-weight: bold;
+  transition: all 0.2s ease;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: transparent;
+}
+
+/* マウスを載せたときに、文字が引き締まった黒になり、背景に薄いグレーが浮かび上がります */
+.home-x-link:hover {
+  color: var(--paper);
+  background: #f5f5f7;
+  transform: translateY(-2px); /* ほんの少し上に浮き上がるアニメーション */
+}
 </style>
 </head>
 <body>
@@ -638,6 +663,10 @@
     <div class="btn-group">
       <div id="kanji-count-display" style="color:var(--mist);font-size:0.85rem;margin-top:0.5rem;letter-spacing:0.08em;"></div>
     </div>
+    <a href="https://x.com/KiyuUre" target="_blank" rel="noopener noreferrer" class="home-x-link" title="Xを開く">
+      𝕏
+    </a>
+    
   </div>
 
   <div id="game-screen" class="screen">
