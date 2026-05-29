@@ -1264,18 +1264,26 @@ function onKeyDown(e) {
   
   // 1. その問題の最後の1文字を打ち込んで【問題正解】したとき
   const complete = allOpts.find(opt => opt === newTyped);
-  if (complete) {
+if (complete) {
     currentTyped = newTyped;
     currentDisplayOption = complete;
     renderInputDisplay();
     
-    playSE(SE.allCorrect); // ✨【追加】問題クリアのピンポン音！
+    playSE(SE.allCorrect); 
     
+    // 【修正】現在の全体時間から、この問題が始まった時間を引いて「かかった時間」を出します
+    // ※先ほど追加したペナルティの引き算は、このバグが直れば不要（自然に正しい数値になる）なため、
+    // シンプルでバグの起きにくい元の綺麗な計算式に戻しています。
     const questionDuration = elapsedTime - questionStartTime;
+    
     timeRecords.push({
       kanji: gameQueue[currentIndex].kanji,
       time: questionDuration
     });
+    
+    // ✨【今回の最重要修正：追加】
+    // この問題が解き終わった「今の時間」を、次の問題の「開始時間」として上書き保存します！
+    questionStartTime = elapsedTime; 
     
     advanceQuestion();
     return;
