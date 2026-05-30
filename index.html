@@ -48,14 +48,19 @@
     justify-content: center;
   }
 
-  /* ===== SCREENS ===== */
-  .screen { display: none; width: 100%; max-width: 600px; padding: 0 20px; }
+.screen { display: none; width: 100%; max-width: 600px; padding: 0 20px; }
   
   #result-screen { 
     max-width: 1000px !important; 
     padding: 4rem 20px !important; 
   }
+
+  /* 🎯【新規追加】履歴画面の横幅の制限を解除し、ゆったりと表示させる */
+  #history-screen {
+    max-width: 800px !important;
+  }
   
+  .screen.active { display: flex; flex-direction: column; align-items: center; }
   .screen.active { display: flex; flex-direction: column; align-items: center; }
 
   /* ===== HEADER ===== */
@@ -128,17 +133,24 @@
     width: 100%;
   }
 
-  /* ===== HOME SCREEN ===== */
+/* ===== HOME SCREEN ===== */
   #home-screen { gap: 0.5rem; }
   .menu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; width: 100%; margin-top: 1rem; }
+  
   .menu-card {
     background: #ffffff;
     border: 1px solid #e5e5ea;
     border-radius: 8px;
-    padding: 1.5rem;
+    /* 💡【大修正】上下の余白を 1.5rem から 0.8rem に半減させ、文字に合わせてシュッと引き締めます */
+    padding: 0.8rem 0.5rem; 
     cursor: pointer;
     transition: all 0.15s ease;
     text-align: center;
+    /* 💡 中の文字が完璧に真ん中に揃うようにフレックスボックス化 */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
   }
   .menu-card:hover {
     background: #f5f5f7;
@@ -150,8 +162,8 @@
     font-weight: 700;
     color: var(--paper);
   }
-  .menu-card .desc { font-size: 0.75rem; color: var(--mist); margin-top: 0.2rem; }
-
+  /* 💡 サブテキストもバランスを取ってほんの少しだけ小さく（0.75rem → 0.7rem）調整 */
+  .menu-card .desc { font-size: 0.7rem; color: var(--mist); margin-top: 0.2rem; }
   /* ===== GAME SCREEN ===== */
 .game-screen {
     display: flex;
@@ -639,37 +651,180 @@
     background: #f5f5f7;
     transform: translateY(-2px); 
   }
+
+/* 🔎 既存の result-btn-grid 関連のスタイルをすべて消して、以下を貼り付けます */
+.result-btn-row {
+    display: flex !important;
+    flex-direction: row !important;
+    gap: 10px;
+    width: 100% !important;
+    max-width: 640px;
+    margin: 1.5rem auto 0 auto;
+    box-sizing: border-box;
+    padding: 0 16px;
+  }
+
+  /* 💡 すべてのボタンに共通する基本構造（高さ、フォント、中央揃え） */
+  .result-btn-row .btn {
+    flex: 1 !important;
+    width: 100% !important;
+    font-size: 0.9rem;
+    padding: 10px 0 !important;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    box-sizing: border-box;
+    border-radius: 8px !important;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  /* 🎯 【主役】もう一度プレイ（黒背景で一番目立たせる） */
+  .result-btn-row .btn-primary {
+    background: #1d1d1f !important;
+    color: #ffffff !important;
+    border: none !important;
+    font-weight: 700;
+  }
+  .result-btn-row .btn-primary:hover {
+    background: #424245 !important;
+  }
+
+  /* 🕊️ 【脇役】それ以外の3つのボタン（すべてこの控えめなデザインに統一してうるささを消します） */
+  .result-btn-row .btn-sub {
+    background: #ffffff !important;
+    border: 1px solid #d2d2d7 !important; /* 💡 細い上品なグレーの枠線 */
+    color: #424245 !important;           /* 💡 目立ちすぎないダークグレーの文字 */
+    font-weight: 500;
+  }
+  .result-btn-row .btn-sub:hover {
+    background: #f5f5f7 !important;
+    border-color: #86868b !important;
+    color: #1d1d1f !important;
+  }
+
+.history-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #ffffff;
+    border: 1px solid #e5e5ea;
+    border-radius: 8px;
+    padding: 0.9rem 1rem;
+    font-size: 0.85rem;
+    gap: 15px;
+    width: 100%;
+  }
+  .history-item-left {
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    flex: 1;
+    overflow: hidden;
+  }
+  .history-item-title {
+    font-family: 'Noto Serif JP', serif;
+    font-weight: 700;
+    color: var(--paper);
+    font-size: 0.95rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .history-item-meta {
+    color: var(--mist);
+    font-size: 0.75rem;
+    line-height: 1.4;
+  }
+  
+  .history-item-right {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  
+  .history-item-score {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 1.4rem;
+    font-weight: bold;
+    color: #1d1d1f;
+    min-width: 75px;
+    text-align: right;
+  }
+  .history-item-score.retire {
+    font-family: inherit;
+    font-size: 0.85rem;
+    color: var(--vermillion);
+    font-weight: bold;
+    min-width: 75px;
+    text-align: right;
+  }
+
+  /* 💡 履歴内アクション用のミニ丸ボタン */
+  .history-action-btn {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    border: 1px solid #d2d2d7;
+    background: #ffffff;
+    color: #1d1d1f;
+    cursor: pointer;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    transition: all 0.2s ease;
+    padding: 0 !important;
+  }
+  .history-action-btn:hover {
+    background: #f5f5f7;
+    border-color: #86868b;
+    transform: translateY(-1px);
+  }
+  .history-action-btn svg {
+    width: 15px;
+    height: 15px;
+  }
 </style>
 </head>
 <body>
 
 <div id="app">
 
-  <div id="home-screen" class="screen active">
+<div id="home-screen" class="screen active">
     <div class="logo">みんなの<span>タイピング</span></div>
-    <div class="logo-sub">Minnna no Typing</div>
+    <div class="logo-sub" style="margin-bottom: 2rem;">Minnna no Typing</div>
     
-    <div style="color: var(--gold-light); margin-bottom: 2rem; font-family: 'Noto Serif JP', serif; text-align: center; line-height: 1.6;">
-      現在の設定：<span id="start-template-name" style="font-weight: bold;">無題のお題</span><br>
-      <span style="font-size: 0.8rem; color: var(--mist);">作者：<span id="start-author-name">未設定</span></span>
+    <div class="menu-grid" style="grid-template-columns: 1fr 1fr; gap: 0.8rem; margin-top: 0; margin-bottom: 2.5rem;">
+      
+      <div class="menu-card" onclick="startGame()" style="grid-column: 1 / -1; padding: 0.9rem 0.5rem; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+        <div class="label" style="font-size: 1.2rem; color: #1d1d1f;">開始</div>
+        <div class="desc" style="font-size: 0.75rem; margin-top: 0.2rem;">タイピング開始</div>
+      </div>
+      
+      <div class="menu-card" onclick="showScreen('settings-screen')" style="padding: 0.7rem 0.5rem; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+        <div class="label" style="font-size: 0.95rem;">設定</div>
+        <div class="desc" style="font-size: 0.7rem; margin-top: 0.2rem;">お題の編集など</div>
+      </div>
+      
+      <div class="menu-card" onclick="showScreen('history-screen')" style="padding: 0.7rem 0.5rem; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+        <div class="label" style="font-size: 0.95rem;">履歴</div>
+        <div class="desc" style="font-size: 0.7rem; margin-top: 0.2rem;">過去のスコア記録</div>
+      </div>
     </div>
-
-    <div class="menu-grid">
-      <div class="menu-card" onclick="startGame()">
-        <div class="label">開始</div>
-        <div class="desc">タイピング開始</div>
+    
+<div style="color: var(--gold-light); font-family: 'Noto Serif JP', serif; text-align: center; line-height: 1.8;">
+      <div style="font-size: 1.15rem;">現在の設定：<span id="start-template-name" style="font-weight: bold;">無題のお題</span></div>
+      
+      <div style="font-size: 0.9rem; color: var(--mist); margin-top: 0.4rem; display: flex; justify-content: center; align-items: center; gap: 1rem;">
+        <span>作者：<span id="start-author-name">未設定</span></span>
+        <span id="kanji-count-display"></span>
       </div>
-      <div class="menu-card" onclick="showScreen('settings-screen')">
-        <div class="label">設定</div>
-        <div class="desc">お題の編集やゲームの設定</div>
-      </div>
-</div>
-    <div class="btn-group">
-      <div id="kanji-count-display" style="color:var(--mist);font-size:0.85rem;margin-top:0.5rem;letter-spacing:0.08em;"></div>
     </div>
     
     <div style="position: absolute; right: 28px; bottom: 68px; font-size: 0.7rem; color: var(--mist); font-family: 'Share Tech Mono', monospace; opacity: 0.6; pointer-events: none; letter-spacing: 0.05em;">
-      v0.0.5
+      v0.0.3
     </div>
 
     <a href="https://x.com/KiyuUre" target="_blank" rel="noopener noreferrer" class="home-x-link" title="Xを開く">
@@ -713,10 +868,11 @@
       <div>最長タイム <span id="res-slowest" style="color: var(--wrong); font-weight: bold;">なし</span></div>
     </div>
     
-    <div class="btn-group">
-      <button class="btn btn-secondary" onclick="shareOnX()" style="border-color: #1d1d1f; color: #1d1d1f; font-weight: 700;">𝕏 で成果を共有</button>
-      <button class="btn btn-primary" onclick="startGame()">もう一度</button>
-      <button class="btn btn-secondary" onclick="showScreen('home-screen')">ホームへ</button>
+<div class="result-btn-row">
+      <button class="btn btn-sub" onclick="shareOnX()">𝕏 で共有</button>
+      <button class="btn btn-sub" onclick="saveResultAsImage()">画像で保存</button>
+      <button class="btn btn-primary" onclick="startGame()">もう一度プレイ</button>
+      <button class="btn btn-sub" onclick="showScreen('home-screen')">ホームへ</button>
     </div>
 
     <div class="card" style="margin: 1.5rem 0; text-align: left;">
@@ -794,14 +950,29 @@
       </button>
     </div>
 
-    <div class="btn-group">
+<div class="btn-group">
+      <button class="btn btn-secondary" onclick="showScreen('home-screen')">← ホームへ戻る</button>
+    </div>
+  </div> <div id="history-screen" class="screen" style="padding-top: 4rem !important; margin-bottom: auto !important;">
+    <div class="settings-title">プレイ履歴</div>
+    
+    <div class="card" style="margin-top: 1rem; background: var(--ink-light); max-height: 450px; overflow-y: auto; padding: 1rem;">
+      <div id="history-log-list" style="display: flex; flex-direction: column; gap: 0.5rem;">
+        <div class="empty-state">プレイ履歴がまだありません</div>
+      </div>
+    </div>
+
+    <div style="width: 100%; margin-top: 1rem;">
+      <button class="btn" onclick="clearPlayHistory()" style="width: 100%; color: #ff3b30; border-color: #ff3b30; background: transparent; font-weight: 700;">
+        履歴をすべてクリア
+      </button>
+    </div>
+
+    <div class="btn-group" style="margin-top: 1.5rem;">
       <button class="btn btn-secondary" onclick="showScreen('home-screen')">← ホームへ戻る</button>
     </div>
   </div>
-
-</div>
-
-<div id="toast"></div>
+  </div> <div id="toast"></div>
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-app.js";
@@ -846,7 +1017,7 @@ window.firebaseCopyShareURL = async function(isSilent = false) { // 💡 引数 
       
       const textShareURL = window.location.origin + window.location.pathname + '?data=' + safeBase64;
 
-      if (textShareURL.length <= 10000) {
+      if (textShareURL.length <= 1000) {
         if (!isSilent) {
           await navigator.clipboard.writeText(textShareURL);
           showToast('🔗 共有URLをコピーしました');
@@ -931,7 +1102,7 @@ window.firebaseCopyShareURL = async function(isSilent = false) {
         
       const textShareURL = targetOrigin + window.location.pathname + '?data=' + safeBase64;
 
-      if (textShareURL.length <= 10000) {
+      if (textShareURL.length <= 1000) {
         // ✨【大修正】isSilent（リザルトからの呼び出し）のときは、クリップボードへのコピーを絶対にスキップする！
         if (!isSilent) {
           await navigator.clipboard.writeText(textShareURL);
@@ -1054,7 +1225,7 @@ window.firebaseCopyShareURL = async function(isSilent = false) {
   };
 
   // UI反映用共通ヘルパー関数
-  function applyImportedData(data) {
+function applyImportedData(data) {
     templateName = data.templateName || '無題のお題';
     authorName = data.authorName || '';
     
@@ -1075,14 +1246,25 @@ window.firebaseCopyShareURL = async function(isSilent = false) {
       }
     }
 
+    // 💡【最重要修正】これまでの描画順序を入れ替えます
+    // ① 先にHTMLのお題リスト（kanji-list）を構築して、ブラウザ側に全データが存在することを確定させます
     renderKanjiList();
+    
+    // ② リストが完全に構築されたあとで、満を持してホーム画面の問題数カウントを実行します
+    // これにより、ログイン直後（1画面目）でも46問といった正しい数字が確実に100%流し込まれます！
     updateHomeCount();
 
     // URLのパラメータを消してスッキリさせる
     window.history.replaceState({}, document.title, window.location.pathname);
   }
 
-  // 実行
+window.getFirebaseDataById = async function(roomId) {
+    if (!roomId) return null;
+    const dbRef = ref(db);
+    const snapshot = await get(child(dbRef, `shared_rooms/${roomId}`));
+    return snapshot.exists() ? snapshot.val() : null;
+  };
+
   window.firebaseCheckURLParam();
 </script>
 
@@ -1203,9 +1385,13 @@ const DEFAULT_KANJI = [
 ];
 
 // ========== STATE ==========
+// ========== STATE ==========
 let kanjiList = JSON.parse(localStorage.getItem('kanji-dojo-list') || JSON.stringify(DEFAULT_KANJI));
-let templateName = 'デフォルトのお題';
-let authorName = ''; 
+
+// ✨【大修正】リロードしても消えないよう、ブラウザの記憶から名前を読み込みます
+let templateName = localStorage.getItem('kanji-dojo-template-name') || 'デフォルトのお題';
+let authorName = localStorage.getItem('kanji-dojo-author-name') || ''; 
+
 let playedTemplateName = ''; 
 let playedAuthorName = '';   
 let playedKanjiList = [];
@@ -1226,6 +1412,31 @@ let isGameRetire = false;
 let isSoundOn = true;
 let missCount = 0; 
 let isFirstKeyStroke = true;
+
+
+// ✨【新規追加】ページを読み込んだ瞬間に、記憶していた名前を各画面の文字や入力欄にカチッとハメ込む自動処理
+window.addEventListener('DOMContentLoaded', () => {
+  // ホーム画面のテキストに反映
+  document.getElementById('start-template-name').textContent = templateName;
+  const startAuthorLabel = document.getElementById('start-author-name');
+  if (startAuthorLabel) {
+    if (authorName) {
+      startAuthorLabel.textContent = authorName;
+      if (startAuthorLabel.parentElement) startAuthorLabel.parentElement.style.display = 'inline';
+    } else {
+      if (startAuthorLabel.parentElement) startAuthorLabel.parentElement.style.display = 'none';
+    }
+  }
+  // 設定画面の入力フォーム（input）の中に文字をセット
+  const inputT = document.getElementById('input-template-name');
+  const inputA = document.getElementById('input-author-name');
+  if (inputT) inputT.value = templateName;
+  if (inputA) inputA.value = authorName;
+
+  // 🎯【大修正】ここを追加！
+  // 普通にページをリロードした時にも、記憶しているお題の数を数え直してバチッと表示させます
+  updateHomeCount();
+});
 
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
@@ -1293,6 +1504,7 @@ function showScreen(id) {
   document.getElementById(id).classList.add('active');
   if (id === 'settings-screen') renderKanjiList();
   if (id === 'home-screen') updateHomeCount();
+  if (id === 'history-screen') renderHistoryList(); // ✨ 新設：履歴画面を開いたらリストを描画
 }
 
 function showToast(msg) {
@@ -1329,9 +1541,11 @@ function saveTemplateMeta() {
   templateName = nameInput || '無題お題';
   authorName = authorInput || ''; 
   
+  // ✨【超重要】入力された瞬間に、ブラウザの記憶領域（localStorage）にリアルタイム保存します
   localStorage.setItem('kanji-dojo-template-name', templateName);
   localStorage.setItem('kanji-dojo-author-name', authorName); 
   
+  // ホーム画面のテキスト表示を即座に更新
   document.getElementById('start-template-name').textContent = templateName;
   
   const startAuthorLabel = document.getElementById('start-author-name');
@@ -1530,8 +1744,27 @@ function renderInputDisplay() {
 }
 
 function onKeyDown(e) {
-  if (e.key === 'Enter') { showHint(); return; }
-  if (e.key === 'Escape') { endGame(true); return; }
+  // 💡 1. まず最優先で「Escキー」が押された時の処理をチェックします
+  if (e.key === 'Escape') {
+    const modal = document.getElementById('image-preview-modal');
+    
+    if (modal && modal.style.display === 'flex') {
+      // プレビュー画像が開いているなら、ポップアップを閉じる（ゲームはそのまま）
+      closePreviewModal();
+    } else {
+      // プレビューが開いていない（プレイ中など）なら、ゲームをリタイアする
+      endGame(true);
+    }
+    return; // 💥 Escキーの処理はここで完全に終了（後ろのタイピング判定に行かせない）
+  }
+
+  // 💡 2. 次に「Enterキー」が押された時（ヒント表示）
+  if (e.key === 'Enter') { 
+    showHint(); 
+    return; 
+  }
+
+  // 💡 3. 通常のアルファベットのタイピング判定
   if (e.key.length !== 1) return;
   const ch = e.key.toLowerCase();
   if (!/[a-z]/.test(ch)) return;
@@ -1577,7 +1810,7 @@ function onKeyDown(e) {
     playSE(SE.keyWrong); 
     missCount++; 
   }
-}
+} // 💡 onKeyDown 関数の終わり
 
 function flashError() {
   const el = document.getElementById('input-display');
@@ -1610,12 +1843,51 @@ function advanceQuestion() {
   }
 }
 
-function endGame(isEscaped = false) {
+async function endGame(isEscaped = false) { // 💡 頭に async をつけます
+  try {
+    const now = new Date();
+    const dateStr = `${now.getMonth() + 1}/${now.getDate()} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    
+    const totalQ = (gameQueue && gameQueue.length > 0) ? gameQueue.length : kanjiList.length;
+    const sourceList = playedKanjiList && playedKanjiList.length > 0 ? playedKanjiList : kanjiList;
+
+    // 💡 Firebase依存をやめ、ローカルで超軽量圧縮して保存する最強・最速方式に変更！
+    const cleanKanjiList = await Promise.all(sourceList.map(async item => {
+      let miniImage = "";
+      if (item.image) {
+        miniImage = await compressImageToMini(item.image);
+      }
+      return {
+        kanji: item.kanji,
+        reading: item.reading,
+        image: miniImage // 容量を極限まで削ぎ落とした画像を保存
+      };
+    }));
+    
+    const newRecord = {
+      template: playedTemplateName || window.templateName || '無題のお題',
+      author: playedAuthorName || window.authorName || '', 
+      score: isEscaped ? 'RETIRE' : elapsedTime.toFixed(1),
+      miss: missCount,
+      penalty: penaltySeconds, 
+      totalQuestions: totalQ, 
+      timeRecords: [...timeRecords], 
+      playedKanjiList: cleanKanjiList, 
+      date: dateStr
+    };
+    
+    let currentHistory = JSON.parse(localStorage.getItem('typing-play-history') || '[]');
+    currentHistory.unshift(newRecord);
+    if (currentHistory.length > 50) currentHistory = currentHistory.slice(0, 50);
+    localStorage.setItem('typing-play-history', JSON.stringify(currentHistory));
+  } catch (e) {
+    console.error("履歴の保存に失敗しました:", e);
+  }
+
+  // --- 以下は元のまま ---
   clearInterval(timerInterval);
   document.removeEventListener('keydown', onKeyDown);
-  
   isGameRetire = isEscaped; 
-  
   document.getElementById('progress-bar').style.width = '100%';
   document.getElementById('res-total').textContent = gameQueue.length;
   document.getElementById('res-penalty').textContent = penaltySeconds;
@@ -1623,7 +1895,6 @@ function endGame(isEscaped = false) {
 
   const scoreBig = document.getElementById('result-score');
   const scoreUnit = document.querySelector('.score-unit');
-  
   if (isEscaped) {
     scoreBig.textContent = 'リタイア';
     if (scoreUnit) scoreUnit.style.display = 'none'; 
@@ -1635,7 +1906,6 @@ function endGame(isEscaped = false) {
   }
 
   document.getElementById('result-template-title').textContent = `テンプレート: ${playedTemplateName}`;
-  
   const resAuthorTitle = document.getElementById('result-author-title');
   if (resAuthorTitle) {
     if (playedAuthorName && playedAuthorName !== '未設定') {
@@ -1656,11 +1926,9 @@ function endGame(isEscaped = false) {
 
   const listContainer = document.getElementById('result-kanji-list');
   listContainer.innerHTML = ''; 
-  
   playedKanjiList.forEach(item => {
     const div = document.createElement('div');
     div.className = 'result-kanji-item';
-    
     if (item.image) {
       div.style.minHeight = '85px'; 
       const img = document.createElement('img');
@@ -1674,15 +1942,12 @@ function endGame(isEscaped = false) {
       kanjiSpan.textContent = item.kanji;
       div.appendChild(kanjiSpan);
     }
-    
     const readingSpan = document.createElement('span');
     readingSpan.className = 'r-reading';
     readingSpan.textContent = item.reading;
-    
     div.appendChild(readingSpan);
     listContainer.appendChild(div);
   });
-
   showScreen('result-screen');
 }
 
@@ -1883,12 +2148,325 @@ function importJSON(event) {
   event.target.value = '';
 }
 
+// 🔎 既存の saveResultAsImage() 関数を、この「秒の右下配置＆サイト名追加版」に丸ごと置き換えます
+let currentGeneratedCanvas = null;
+
+// 🔎 既存の saveResultAsImage() を、以下のポップアップ＆ハッシュタグ版に上書きします
+function saveResultAsImage() {
+  showToast('🖼️ リザルト画像を生成中...');
+
+  const canvas = document.createElement('canvas');
+  canvas.width = 1920;
+  canvas.height = 1080;
+  const ctx = canvas.getContext('2d');
+
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // ─── 👤 上部：ヘッダーエリア ───
+  ctx.fillStyle = '#6e6e73';
+  ctx.font = 'bold 28px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+  ctx.fillText('TYPING RESULT', 120, 95);
+
+  // ✨【改善1】サイト名の頭に「#」を追加し、細字で上品に描画
+  ctx.fillStyle = '#86868b';
+  ctx.font = '24px "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Segoe UI", sans-serif';
+  ctx.textAlign = 'right';
+  ctx.fillText('#みんなのタイピング', 1800, 95);
+  ctx.textAlign = 'left'; 
+
+  // テンプレート名
+  ctx.fillStyle = '#1d1d1f';
+  ctx.font = 'bold 52px "Noto Serif JP", serif';
+  ctx.fillText(playedTemplateName, 120, 165);
+
+  if (playedAuthorName && playedAuthorName !== '未設定' && playedAuthorName !== '') {
+    ctx.fillStyle = '#86868b';
+    ctx.font = '26px -apple-system, sans-serif';
+    ctx.fillText(`作者：${playedAuthorName}`, 120, 215);
+  }
+
+// ─── 📊 中部：左右セパレートのスタッツエリア ───
+  // 左側：メインスコア
+  ctx.fillStyle = '#1d1d1f';
+  if (isGameRetire) {
+    ctx.font = 'bold 150px "Share Tech Mono", monospace';
+    ctx.fillText('RETIRE', 120, 390);
+  } else {
+    // 💡 タイムを「整数部分（例: 2）」と「小数点以下（例: .8）」に分解して個別に幅を測ります
+    const fullScoreText = elapsedTime.toFixed(1); // 例: "2.8"
+    const dotIndex = fullScoreText.indexOf('.');
+    
+    const integerPart = fullScoreText.substring(0, dotIndex); // 例: "2"
+    const decimalPart = fullScoreText.substring(dotIndex);    // 例: ".8"
+    
+    // ① まず、全体の数字のフォントを設定
+    ctx.font = 'bold 160px "Share Tech Mono", monospace';
+    
+    // ② それぞれのパーツの正確な横幅を計測
+    const integerWidth = ctx.measureText(integerPart).width;
+    const fullWidth = ctx.measureText(fullScoreText).width;
+    
+    // ③ 数字（2.8）を通常通り一発で描画（これで数字自体の並びは完璧になります）
+    ctx.fillText(fullScoreText, 120, 390);
+    
+    // ✨【絶対被らない右下配置ロジック】
+    // 「秒」の開始位置を、ドットより後ろ、つまり全体の横幅（fullWidth）のすぐ後ろ（+15px）に固定します。
+    // これにより、整数部分のすぐ後ろにあるドットや小数部分に被るリスクを物理的にゼロにします。
+    ctx.fillStyle = '#1d1d1f';
+    ctx.font = 'bold 45px -apple-system, sans-serif';
+    
+    // 全体の文字幅の後ろに安全なマージンを足して配置
+    const textXPosition = 120 + fullWidth + 15;
+    ctx.fillText('秒', textXPosition, 390);
+  }
+
+  const rightX = 1250; 
+  ctx.fillStyle = '#6e6e73'; ctx.font = '30px -apple-system, sans-serif';
+  ctx.fillText('問題数：', rightX, 235);
+  ctx.fillStyle = '#1d1d1f'; ctx.font = 'bold 32px -apple-system, sans-serif';
+  ctx.fillText(`${gameQueue.length} 問`, rightX + 130, 235);
+
+  ctx.fillStyle = '#6e6e73'; ctx.font = '30px -apple-system, sans-serif';
+  ctx.fillText('ペナルティ：', rightX, 290);
+  ctx.fillStyle = '#1d1d1f'; ctx.font = 'bold 32px -apple-system, sans-serif';
+  ctx.fillText(`${penaltySeconds} 秒`, rightX + 180, 290);
+
+  ctx.fillStyle = '#6e6e73'; ctx.font = '30px -apple-system, sans-serif';
+  ctx.fillText('ミス回数：', rightX, 345);
+  ctx.fillStyle = missCount > 0 ? '#ff3b30' : '#1d1d1f'; ctx.font = 'bold 32px -apple-system, sans-serif';
+  ctx.fillText(`${missCount} 回`, rightX + 150, 345);
+
+  let slowestText = 'なし';
+  if (timeRecords.length > 0) {
+    const slowest = timeRecords.reduce((max, item) => item.time > max.time ? item : max, timeRecords[0]);
+    slowestText = `${slowest.kanji} (${slowest.time.toFixed(1)}秒)`;
+  }
+  ctx.fillStyle = '#6e6e73'; ctx.font = '30px -apple-system, sans-serif';
+  ctx.fillText('最も時間がかかった問題：', rightX, 400);
+  
+  ctx.fillStyle = '#1d1d1f';
+  let slowestFontSize = 32;
+  ctx.font = `bold ${slowestFontSize}px -apple-system, sans-serif`;
+  while (ctx.measureText(slowestText).width > 550 && slowestFontSize > 18) {
+    slowestFontSize--;
+    ctx.font = `bold ${slowestFontSize}px -apple-system, sans-serif`;
+  }
+  ctx.fillText(slowestText, rightX + 350, 400);
+
+  ctx.strokeStyle = '#e5e5ea';
+  ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(120, 500); ctx.lineTo(1800, 500); ctx.stroke();
+
+ctx.fillStyle = '#1d1d1f';
+  ctx.font = 'bold 34px "Noto Serif JP", serif';
+  ctx.fillText('収録問題一覧', 120, 565);
+
+  const startX = 120;
+  const startY = 600;
+  const areaWidth = 1680;  
+  const areaHeight = 430; 
+  const totalItems = playedKanjiList.length;
+
+  // 💡【大改善】お題の数に応じて、1行あたりの列数を最適化します
+  // 5問以下のときは横に無理に5分割せず、問題数に合わせることで1つの枠を大きくします
+  const cols = totalItems <= 5 ? Math.max(3, totalItems) : 5; 
+  const rows = Math.ceil(totalItems / cols);
+
+  const gapX = 20;
+  const gapY = 15;
+  const colWidth = (areaWidth - (gapX * (cols - 1))) / cols;
+  
+  // 💡【大改善】縦幅（rowHeight）の計算ロジック
+  // 問題数が少ない（1行で収まる）時は、枠いっぱいの高さ（140px）まで贅沢に広げます
+  let rowHeight = (areaHeight - (gapY * (rows - 1))) / rows;
+  if (rows === 1) {
+    rowHeight = 140; // 💡 元の90pxから140pxへ大幅にサイズアップ！
+  } else if (rowHeight > 110) {
+    rowHeight = 110; 
+  }
+
+  // 枠が大きくなった分、文字サイズもバランスよく大きくします
+  const kanjiFontSize = Math.max(16, Math.min(32, rowHeight * 0.42));
+  const readingFontSize = kanjiFontSize * 0.75; 
+
+  let loadedCount = 0;
+
+  if (totalItems === 0) {
+    openPreviewModal(canvas);
+  }
+
+  playedKanjiList.forEach((item, index) => {
+    const col = index % cols;
+    const row = Math.floor(index / cols);
+    const itemX = startX + col * (colWidth + gapX);
+    const itemY = startY + row * (rowHeight + gapY);
+
+    ctx.fillStyle = '#f5f5f7';
+    ctx.beginPath();
+    ctx.roundRect(itemX, itemY, colWidth, rowHeight, 8);
+    ctx.fill();
+
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+
+if (item.image) {
+      // 💡 共通の描画処理を1つにまとめたインライン関数
+      const drawThumbnail = function(targetImg) {
+        ctx.save();
+        const thumbHeight = rowHeight - 20; 
+        const maxThumbWidth = colWidth * 0.4; 
+        let thumbWidth = thumbHeight * (targetImg.width / targetImg.height);
+        if (thumbWidth > maxThumbWidth) {
+          thumbWidth = maxThumbWidth;
+        }
+
+        ctx.beginPath();
+        ctx.roundRect(itemX + 15, itemY + 10, thumbWidth, thumbHeight, 4);
+        ctx.clip();
+        
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(itemX + 15, itemY + 10, thumbWidth, thumbHeight);
+        
+        ctx.drawImage(targetImg, itemX + 15, itemY + 10, thumbWidth, thumbHeight);
+        ctx.restore();
+
+        ctx.fillStyle = '#86868b';
+        ctx.font = `${readingFontSize}px -apple-system, sans-serif`;
+        ctx.fillText(item.reading, itemX + thumbWidth + 30, itemY + (rowHeight / 2));
+        checkProgress();
+      };
+
+      // ✨【超重要】あらかじめ読み込み完了している画像があるなら、即座に描画！
+      if (item.loadedImageObject) {
+        drawThumbnail(item.loadedImageObject);
+      } else {
+        const img = new Image();
+        img.onload = function() {
+          drawThumbnail(img);
+        };
+        img.onerror = checkProgress;
+        img.src = item.image;
+      }
+    } else {
+      const kanjiText = item.kanji === '（画像問題）' ? '' : item.kanji;
+      const readingText = item.reading;
+
+      ctx.fillStyle = '#1d1d1f';
+      ctx.font = `bold ${kanjiFontSize}px "Noto Serif JP", serif`;
+      let currentKanjiSize = kanjiFontSize;
+      while (ctx.measureText(kanjiText).width > (colWidth * 0.5) && currentKanjiSize > 12) {
+        currentKanjiSize--;
+        ctx.font = `bold ${currentKanjiSize}px "Noto Serif JP", serif`;
+      }
+      ctx.fillText(kanjiText, itemX + 18, itemY + (rowHeight / 2));
+      
+      const kanjiWidth = ctx.measureText(kanjiText).width;
+      ctx.fillStyle = '#86868b'; 
+      ctx.font = `${readingFontSize}px -apple-system, sans-serif`; 
+      let currentReadingSize = readingFontSize;
+      const maxReadingWidth = colWidth - kanjiWidth - 35;
+      while (ctx.measureText(readingText).width > maxReadingWidth && currentReadingSize > 10) {
+        currentReadingSize--;
+        ctx.font = `${currentReadingSize}px -apple-system, sans-serif`;
+      }
+      ctx.fillText(readingText, itemX + 18 + kanjiWidth + 12, itemY + (rowHeight / 2));
+      checkProgress();
+    }
+  });
+
+  ctx.textBaseline = 'alphabetic';
+
+  function checkProgress() {
+    loadedCount++;
+    if (loadedCount === totalItems) {
+      // ✨【変更点】直接DLせず、ポップアップを表示する関数を呼び出す
+      openPreviewModal(canvas);
+    }
+  }
+}
+
+// ✨【新規追加】ポップアップを開き、描画結果の画像をセットする関数
+function openPreviewModal(canvas) {
+  currentGeneratedCanvas = canvas; // 保存用にキャンバスを記録
+  
+  const modal = document.getElementById('image-preview-modal');
+  const previewImg = document.getElementById('modal-preview-img');
+  
+  // キャンバスを画像データ（URL）に変換してimgタグに流し込む
+  previewImg.src = canvas.toDataURL('image/png');
+  
+  // モーダルをフェードイン表示
+  modal.style.display = 'flex';
+  setTimeout(() => {
+    modal.style.opacity = '1';
+  }, 10);
+}
+
+// ✨【新規追加】ポップアップを閉じる関数
+function closePreviewModal() {
+  const modal = document.getElementById('image-preview-modal');
+  modal.style.opacity = '0';
+  setTimeout(() => {
+    modal.style.display = 'none';
+  }, 200);
+}
+
+// ✨【新規追加】ポップアップ内の「保存マーク」を押した時に実際にダウンロードを行う関数
+function triggerCanvasDownload() {
+  if (!currentGeneratedCanvas) return;
+  
+  try {
+    const dataUrl = currentGeneratedCanvas.toDataURL('image/png');
+    const a = document.createElement('a');
+    a.href = dataUrl;
+    a.download = `Result_${playedTemplateName}.png`;
+    a.click();
+    showToast('💾 画像をフォルダに保存しました！');
+    closePreviewModal(); // 保存したら自動で閉じる
+  } catch (err) {
+    console.error(err);
+    showToast('⚠️ 保存に失敗しました');
+  }
+}
+
+async function copyResultImageToClipboard() {
+  if (!currentGeneratedCanvas) return;
+
+  // 1. 生成されたキャンバスをデータ（Blob）に変換してクリップボードへ直送
+  try {
+    currentGeneratedCanvas.toBlob(async function(blob) {
+      if (blob) {
+        try {
+          await navigator.clipboard.write([
+            new ClipboardItem({ "image/png": blob })
+          ]);
+          
+          // 2. コピー成功を伝えるトースト通知を出して、ポップアップを閉じる
+          showToast('✨ 画像をクリップボードにコピーしました！');
+          closePreviewModal();
+          
+        } catch (clipErr) {
+          console.error("画像コピーに失敗しました:", clipErr);
+          alert("ブラウザのセキュリティ制限により、画像のコピーに失敗しました。");
+        }
+      }
+    }, 'image/png');
+  } catch (err) {
+    console.error("処理エラー:", err);
+    showToast('⚠️ コピーに失敗しました');
+  }
+}
+
+// 🔎 JavaScriptの末尾（scriptタグが閉じる前）に、この復活用の shareOnX 関数を貼り付けます
+
 async function shareOnX() {
+  // 1. 𝕏に引き渡す実績テキストを自動組み立て
   const totalCount = gameQueue.length;
   let text = '';
   
   let titleText = '';
-  if (playedAuthorName && playedAuthorName !== '未設定') {
+  if (playedAuthorName && playedAuthorName !== '未設定' && playedAuthorName !== '') {
     titleText = `${playedAuthorName}さんの「${playedTemplateName}」`;
   } else {
     titleText = `「${playedTemplateName}」`;
@@ -1908,66 +2486,392 @@ async function shareOnX() {
     text = `${titleText} の全${totalCount}問をクリアしました。所要時間は【${scoreTime}秒】です。\nミスタイプ数は${missCount}回、最も入力に時間がかかったお題は、${slowestText}でした。`;
   }
 
-  // ✨【今回の核】裏側でこのゲームの共有URLを自動生成する（通知を出さないサイレントモード）
+  // 2. このゲーム（お題セット）の共有用FirebaseURLを自動生成して文末に付与
   let gameShareUrl = '';
   if (typeof window.firebaseCopyShareURL === 'function') {
-    // リザルト画面専用にトースト通知などを出さずにURLだけを裏で取得します
+    // 引数に true を渡すことで、クリップボードへの重複コピー（トースト）を防ぎURLだけを取得します
     const generatedUrl = await window.firebaseCopyShareURL(true);
     if (generatedUrl) {
       gameShareUrl = generatedUrl;
     }
   }
 
-  // ポストする文章の最後に、生成されたプレイ用URLをドッキング
   if (gameShareUrl) {
-    text += `\n\nこのお題でタイピングに挑戦！\n${gameShareUrl}`;
+    text += `\n\n👇このお題でタイピングに挑戦！\n${gameShareUrl}`;
   }
 
   const hashtags = 'みんなのタイピング';
-  const shareUrl = `https://x.com/intent/tweet?text=${encodeURIComponent(text)}&hashtags=${encodeURIComponent(hashtags)}`;
 
+  // 3. 組み立てたテキストとハッシュタグを込めて𝕏の投稿画面を開く
+  const shareUrl = `https://x.com/intent/tweet?text=${encodeURIComponent(text)}&hashtags=${encodeURIComponent(hashtags)}`;
   window.open(shareUrl, '_blank');
 }
-
-// 起動時および初期設定の読み込み
-(function init() {
-  const savedTemplate = localStorage.getItem('kanji-dojo-template-name');
-  if (savedTemplate) templateName = savedTemplate;
-  
-  const savedAuthor = localStorage.getItem('kanji-dojo-author-name');
-  if (savedAuthor) authorName = savedAuthor;
-  
-  const savedSound = localStorage.getItem('kanji-dojo-sound-on');
-  if (savedSound !== null) isSoundOn = (savedSound === 'true');
-  
-  window.addEventListener('DOMContentLoaded', () => {
-    document.getElementById('input-template-name').value = templateName;
-    document.getElementById('input-author-name').value = (authorName === '未設定' || !authorName) ? '' : authorName; 
-    
-    document.getElementById('start-template-name').textContent = templateName;
-    
-    const startAuthorLabel = document.getElementById('start-author-name');
-    if (startAuthorLabel) {
-      if (authorName && authorName !== '未設定') {
-        startAuthorLabel.textContent = authorName;
-        if (startAuthorLabel.parentElement) startAuthorLabel.parentElement.style.display = 'inline';
-      } else {
-        if (startAuthorLabel.parentElement) startAuthorLabel.parentElement.style.display = 'none';
-      }
-    }
-    
-    const soundCheckbox = document.getElementById('setting-sound');
-    if (soundCheckbox) soundCheckbox.checked = isSoundOn;
-    
-    updateHomeCount();
-  });
-})();
 
 function toggleSoundSetting(checked) {
   isSoundOn = checked;
   localStorage.setItem('kanji-dojo-sound-on', checked);
   showToast(checked ? '音声をONにしました' : '音声をOFFにしました');
 }
+
+window.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    const modal = document.getElementById('image-preview-modal');
+    // もし画像ポップアップが表示されているなら、閉じて処理を終了する
+    if (modal && modal.style.display === 'flex') {
+      closePreviewModal();
+      e.preventDefault();  // ブラウザの他のEscape挙動を止める
+      e.stopPropagation();  // ゲーム側のリタイア処理にキーが渡るのを完全にブロックする
+    }
+  }
+}, true); // ← 「true」にすることで、ゲーム側のタイピング判定よりも先にこのEscチェックを実行させます
+
+function renderHistoryList() {
+  const container = document.getElementById('history-log-list');
+  if (!container) return;
+  
+  container.innerHTML = '';
+  const historyData = JSON.parse(localStorage.getItem('typing-play-history') || '[]');
+  
+  if (historyData.length === 0) {
+    container.innerHTML = '<div class="empty-state">プレイ履歴がまだありません</div>';
+    return;
+  }
+  
+  historyData.forEach((item, index) => {
+    const div = document.createElement('div');
+    div.className = 'history-item';
+    
+    const isRetire = item.score === 'RETIRE';
+    const scoreHTML = isRetire 
+      ? `<span class="history-item-score retire">RETIRE</span>`
+      : `<span class="history-item-score">${item.score}<span style="font-size:0.65rem; color:var(--mist); margin-left:1px;">秒</span></span>`;
+    
+    // 統計情報のテキスト組み立て
+    const authorText = item.author ? `（作者: ${item.author}）` : '';
+    const penaltyText = item.penalty !== undefined ? `${item.penalty}秒` : '0秒';
+    const missText = item.miss !== undefined ? `${item.miss}回` : '0回';
+    const totalQText = item.totalQuestions !== undefined ? `${item.totalQuestions}問` : '-問';
+    
+    div.innerHTML = `
+      <div class="history-item-left">
+        <div class="history-item-title">${item.template}${authorText}</div>
+        <div class="history-item-meta">
+          ${item.date} ｜ 問題数: ${totalQText} ｜ ミス: ${missText} ｜ ペナ: ${penaltyText}
+        </div>
+      </div>
+<div class="history-item-right">
+        ${scoreHTML}
+        <button class="history-action-btn" onclick="actionFromHistory(${index}, 'image')" title="この記録の画像を出力">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+        </button>
+        <button class="history-action-btn" onclick="actionFromHistory(${index}, 'x')" style="font-weight: bold; font-family: -apple-system, sans-serif; font-size: 0.8rem;" title="この記録を𝕏で共有">
+          𝕏
+        </button>
+        <button class="history-action-btn" onclick="applyHistoryData(${index})" title="このお題を現在の設定に復元する">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="1 4 1 10 7 10"></polyline>
+            <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+          </svg>
+        </button>
+      </div>
+    `;
+    container.appendChild(div);
+  });
+}
+
+// 🔎 既存の actionFromHistory(index, type) 関数を、以下のコードに丸ごと上書きします
+
+async function actionFromHistory(index, type) {
+  const historyData = JSON.parse(localStorage.getItem('typing-play-history') || '[]');
+  const data = historyData[index];
+  if (!data) return;
+
+  const backup_playedTemplateName = playedTemplateName;
+  const backup_playedAuthorName = playedAuthorName;
+  const backup_elapsedTime = elapsedTime;
+  const backup_missCount = missCount;
+  const backup_penaltySeconds = penaltySeconds;
+  const backup_isGameRetire = isGameRetire;
+  const backup_timeRecords = timeRecords;
+  const backup_playedKanjiList = playedKanjiList;
+  const backup_gameQueue = gameQueue;
+
+  playedTemplateName = data.template;
+  playedAuthorName = data.author;
+  elapsedTime = data.score === 'RETIRE' ? 0 : parseFloat(data.score);
+  missCount = data.miss || 0;
+  penaltySeconds = data.penalty || 0;
+  isGameRetire = data.score === 'RETIRE';
+  timeRecords = data.timeRecords || [];
+  
+  const isResultScreenActive = document.getElementById('result-screen').classList.contains('active');
+  let finalKanjiList = [];
+  
+  if (isResultScreenActive && backup_playedKanjiList && backup_playedKanjiList.length > 0 && type === 'image') {
+    finalKanjiList = JSON.parse(JSON.stringify(backup_playedKanjiList));
+  } else {
+    // 💡 まずは履歴に保存されている「超軽量化（低画質）サムネイル」をベースにリストを作ります
+    finalKanjiList = data.playedKanjiList || [];
+    
+    // ✨【超重要】もしFirebaseにこのお題のデータがアップロード済みなら、高画質画像を引っ張ってきて上書きします！
+    const hasImageQuestion = finalKanjiList.some(item => item.image && item.image.startsWith('data:image'));
+    if (hasImageQuestion && data.cloudId) {
+      if (type === 'image') showToast('⏳ クラウドから高画質データを読み込み中...');
+      try {
+        const snapshot = await window.getFirebaseDataById(data.cloudId);
+        if (snapshot && snapshot.kanji) {
+          finalKanjiList = finalKanjiList.map(item => {
+            if (item.image) {
+              const matchedItem = snapshot.kanji.find(k => 
+                k.reading === item.reading && 
+                (k.kanji === item.kanji || item.kanji === '（画像問題）' || !k.kanji)
+              );
+              // マッチした本物の高画質データ（Base64）があれば、低画質画像とすり替える！
+              if (matchedItem && matchedItem.image) {
+                item.image = matchedItem.image; 
+              }
+            }
+            return item;
+          });
+        }
+      } catch (err) {
+        console.log("Firebaseからの高画質取得に失敗:", err);
+      }
+    }
+  }
+
+  playedKanjiList = finalKanjiList;
+  gameQueue = finalKanjiList;
+
+  // 💡 フライング防止機能はそのままに、高画質化されたデータを使って画像を生成します
+  if (type === 'image') {
+    if (playedKanjiList && playedKanjiList.length > 0) {
+      
+      const imageLoadPromises = playedKanjiList.map(item => {
+        if (item.image && item.image.startsWith('data:image')) {
+          return new Promise((resolve) => {
+            const img = new Image();
+            img.onload = () => {
+              item.loadedImageObject = img; 
+              resolve();
+            };
+            img.onerror = () => resolve(); 
+            img.src = item.image;
+          });
+        }
+        return Promise.resolve(); 
+      });
+
+      Promise.all(imageLoadPromises).then(() => {
+        saveResultAsImage(); 
+      });
+
+    } else {
+      showToast('⚠️ この履歴には問題一覧が含まれていません');
+    }
+  } else if (type === 'x') {
+    shareOnX(); 
+  }
+
+  setTimeout(() => {
+    playedTemplateName = backup_playedTemplateName;
+    playedAuthorName = backup_playedAuthorName;
+    elapsedTime = backup_elapsedTime;
+    missCount = backup_missCount;
+    penaltySeconds = backup_penaltySeconds;
+    isGameRetire = backup_isGameRetire;
+    timeRecords = backup_timeRecords;
+    playedKanjiList = backup_playedKanjiList;
+    gameQueue = backup_gameQueue;
+  }, 5000);
+}
+// 🗑️ 履歴をすべて削除する関数
+function clearPlayHistory() {
+  const confirmClear = confirm('⚠️ これまでのプレイ履歴（スコア記録）をすべて完全に削除します。\n\n本当によろしいですか？');
+  if (!confirmClear) return;
+  
+  localStorage.removeItem('typing-play-history');
+  renderHistoryList(); // 表示をリフレッシュ
+  showToast('🗑️ プレイ履歴をクリアしました');
+}
+
+// 🔎 最下部付近にある copyAndTweetFromModal() 関数を以下に丸ごと上書きします
+
+async function copyAndTweetFromModal() {
+  if (!currentGeneratedCanvas) return;
+  
+  showToast('⏳ 画像をコピー中...');
+
+  try {
+    // 1. まずは画像をクリップボードにコピー（非同期処理）
+    currentGeneratedCanvas.toBlob(async function(blob) {
+      if (blob) {
+        try {
+          await navigator.clipboard.write([
+            new ClipboardItem({ "image/png": blob })
+          ]);
+          
+          showToast('✨ コピー完了！𝕏を開きます');
+          
+          // 2. 💡【重要】履歴から呼び出された際のリタイア状態（isGameRetire）が
+          // タイミングのズレで消去されるのを防ぐため、即座に shareOnX() を実行します
+          shareOnX();
+          closePreviewModal(); // ポップアップを閉じる
+
+        } catch (clipErr) {
+          console.error("画像コピーに失敗しました:", clipErr);
+          showToast('⚠️ ブラウザの制限によりコピーに失敗しました');
+          shareOnX();
+        }
+      }
+    }, 'image/png');
+
+  } catch (err) {
+    console.error("処理エラー:", err);
+    shareOnX();
+  }
+}
+
+function compressImageToMini(base64Str) {
+  return new Promise((resolve) => {
+    if (!base64Str || !base64Str.startsWith('data:image')) {
+      resolve(""); return;
+    }
+    const img = new Image();
+    img.onload = function() {
+      const canvas = document.createElement('canvas');
+      const TARGET_HEIGHT = 100; // リザルト一覧で必要な高さは最大でも90〜100pxなのでこれで十分！
+      const scale = TARGET_HEIGHT / img.height;
+      canvas.width = img.width * scale;
+      canvas.height = TARGET_HEIGHT;
+      
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      
+      // 画質0.5で極限までデータ容量を削減（1枚数KBになり絶対にパンクしません）
+      resolve(canvas.toDataURL('image/jpeg', 0.5));
+    };
+    img.onerror = () => resolve("");
+    img.src = base64Str;
+  });
+}
+
+async function applyHistoryData(index) {
+  const historyData = JSON.parse(localStorage.getItem('typing-play-history') || '[]');
+  const data = historyData[index];
+  if (!data) return;
+
+  const confirmApply = confirm(`⚠️ この記録のお題「${data.template}」を現在の設定に復元しますか？\n\n※現在設定されているお題はクリアされ、上書きされます。`);
+  if (!confirmApply) return;
+
+  let finalKanjiList = data.playedKanjiList || [];
+  
+  // ✨【超重要】画像が含まれていて、かつクラウドIDがある場合はFirebaseから高画質版を取りに行く
+  const hasImageQuestion = finalKanjiList.some(item => item.image && item.image.startsWith('data:image'));
+  
+  if (hasImageQuestion && data.cloudId) {
+    showToast('⏳ クラウドから高画質画像を復元中...');
+    try {
+      const snapshot = await window.getFirebaseDataById(data.cloudId);
+      if (snapshot && snapshot.kanji) {
+        finalKanjiList = finalKanjiList.map(item => {
+          if (item.image) {
+            const matchedItem = snapshot.kanji.find(k => 
+              k.reading === item.reading && 
+              (k.kanji === item.kanji || item.kanji === '（画像問題）' || !k.kanji)
+            );
+            if (matchedItem && matchedItem.image) {
+              item.image = matchedItem.image; // 高画質データにすり替え！
+            }
+          }
+          return item;
+        });
+      }
+    } catch (err) {
+      console.log("Firebaseからの画像復元に失敗:", err);
+      showToast('⚠️ 画像の一部が高画質で復元できませんでした');
+    }
+  }
+
+  // アプリの現在の状態をすべて過去のデータで上書き
+  kanjiList = finalKanjiList;
+  templateName = data.template;
+  authorName = data.author || '';
+
+  saveKanjiList();
+  localStorage.setItem('kanji-dojo-template-name', templateName);
+  localStorage.setItem('kanji-dojo-author-name', authorName);
+
+  document.getElementById('start-template-name').textContent = templateName;
+  const startAuthorLabel = document.getElementById('start-author-name');
+  if (startAuthorLabel) {
+    if (authorName) {
+      startAuthorLabel.textContent = authorName;
+      if (startAuthorLabel.parentElement) startAuthorLabel.parentElement.style.display = 'inline';
+    } else {
+      if (startAuthorLabel.parentElement) startAuthorLabel.parentElement.style.display = 'none';
+    }
+  }
+  
+  const inputT = document.getElementById('input-template-name');
+  const inputA = document.getElementById('input-author-name');
+  if (inputT) inputT.value = templateName;
+  if (inputA) inputA.value = authorName;
+
+  renderKanjiList();
+  updateHomeCount();
+
+  showToast(`✨ 「${templateName}」をサイトに復元しました！`);
+}
 </script>
+
+<div id="image-preview-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6); z-index: 9999; justify-content: center; align-items: center; opacity: 0; transition: opacity 0.2s ease-in-out;">
+  <div style="background: #ffffff; padding: 24px; border-radius: 12px; max-width: 85%; max-height: 85%; box-shadow: 0 10px 30px rgba(0,0,0,0.3); display: flex; flex-direction: column; align-items: center; position: relative;">
+    
+    <button onclick="closePreviewModal()" style="position: absolute; top: 12px; right: 16px; background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #86868b;">&times;</button>
+    
+    <h3 style="margin-top: 0; margin-bottom: 12px; font-size: 1.1rem; color: #1d1d1f; font-family: -apple-system, sans-serif;">リザルト画像</h3>
+    
+    <img id="modal-preview-img" style="width: 100%; max-height: 55vh; object-fit: contain; border-radius: 6px; border: 1px solid #e5e5ea; margin-bottom: 16px;" src="" alt="Preview">
+    
+<div style="display: flex; gap: 40px; justify-content: center; align-items: center; margin-top: 5px;">
+      
+      <div style="display: flex; flex-direction: column; align-items: center;">
+        <button onclick="triggerCanvasDownload()" title="画像を保存" style="background: #0071e3; color: white; border: none; width: 56px; height: 56px; border-radius: 50%; cursor: pointer; display: flex; justify-content: center; align-items: center; box-shadow: 0 4px 12px rgba(0,113,227,0.3); transition: transform 0.1s;">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+        </button>
+        <span style="font-size: 0.75rem; color: #86868b; margin-top: 8px; font-family: -apple-system, sans-serif; font-weight: bold;">端末に保存</span>
+      </div>
+
+      <div style="display: flex; flex-direction: column; align-items: center;">
+        <button onclick="copyResultImageToClipboard()" title="画像をクリップボードにコピー" style="background: #e8e8ed; color: #1d1d1f; border: none; width: 56px; height: 56px; border-radius: 50%; cursor: pointer; display: flex; justify-content: center; align-items: center; box-shadow: 0 4px 12px rgba(0,0,0,0.05); transition: transform 0.1s;">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+          </svg>
+        </button>
+        <span style="font-size: 0.75rem; color: #86868b; margin-top: 8px; font-family: -apple-system, sans-serif; font-weight: bold;">画像をコピー</span>
+      </div>
+
+      <div style="width: 1px; height: 50px; background: #d2d2d7; margin: 0 10px;"></div>
+
+      <div style="display: flex; flex-direction: column; align-items: center;">
+        <button onclick="copyAndTweetFromModal()" title="画像をコピーして𝕏を開く" style="background: #1d1d1f; color: white; border: none; width: 56px; height: 56px; border-radius: 50%; cursor: pointer; display: flex; justify-content: center; align-items: center; box-shadow: 0 4px 12px rgba(0,0,0,0.2); transition: transform 0.1s;">
+          <span style="font-weight: bold; font-family: -apple-system, sans-serif; font-size: 1.2rem; margin-top: -2px;">𝕏</span>
+        </button>
+        <span style="font-size: 0.75rem; color: #1d1d1f; margin-top: 8px; font-family: -apple-system, sans-serif; font-weight: bold;">コピー＆ツイート</span>
+      </div>
+
+    </div>
 </body>
 </html>
