@@ -152,17 +152,16 @@
   .menu-card .desc { font-size: 0.75rem; color: var(--mist); margin-top: 0.2rem; }
 
   /* ===== GAME SCREEN ===== */
-.game-screen {
+  .game-screen {
     display: flex;
     flex-direction: column;
     align-items: center;
     box-sizing: border-box;
     width: 100%;
     height: auto; 
-    
-    /* ↓【重要】上端を基準にするため、下の margin: auto に引っ張られないようにします */
     margin-top: 0;
     margin-bottom: auto;
+    padding: 8vh 20px 2rem 20px;
   }
 
   .game-header {
@@ -188,7 +187,7 @@
   .progress-info strong { color: var(--paper); font-size: 1rem; }
 
   /* Stage display */
-.kanji-stage {
+  .kanji-stage {
     width: 100%;
     text-align: center;
     padding: 0 1rem; 
@@ -198,33 +197,27 @@
     justify-content: center;
     align-items: center;
     transition: min-height 0.2s ease;
-    
-    /* ↓【魔法の2行】これによって、上部のタイマーに押し下げられることなく、
-       お題とタイピング欄のセットが画面の「垂直方向のちょうど真ん中」に配置されます */
-    margin-top: auto;
-    margin-bottom: auto;
+    margin-top: 2.5rem; 
+    margin-bottom: 0;
   }
 
-.kanji-main {
-    font-size: 11rem; /* ←【超特大化！】5rem から 11rem に大幅アップ！ */
-    font-weight: 800; /* さらに文字の線を太くしてくっきりと */
+  .kanji-main {
+    font-size: 11rem; 
+    font-weight: 800; 
     font-family: 'Noto Serif JP', serif;
-    color: var(--paper); /* 白背景（またはテーマ色）に映える色 */
+    color: var(--paper); 
     line-height: 1.1;
     margin: 0.5rem 0;
     display: inline-block;
-    letter-spacing: -0.02em; /* 2文字以上のときの間伸びを防ぐ */
+    letter-spacing: -0.02em; 
   }
   .kanji-main.correct-flash { color: var(--correct); }
   .kanji-main.wrong-flash { color: var(--wrong); }
 
   /* 出題画像スタイル */
-.stage-image {
+  .stage-image {
     max-width: 100%;
-    
-    /* 【修正】280px から 380px へ！これでスマホやPCの画面いっぱいに大きく表示されます */
     max-height: 380px; 
-    
     object-fit: contain;
     border-radius: 6px;
     border: 1px solid #e5e5ea;
@@ -234,13 +227,12 @@
   .stage-image.correct-flash { border-color: var(--correct); transform: scale(1.03); }
   .stage-image.wrong-flash { border-color: var(--wrong); transform: scale(0.97); }
 
-.reading-hint {
+  .reading-hint {
     font-size: 1.5rem;
     color: var(--mist);
     font-weight: 500;
     letter-spacing: 0.1em;
     min-height: 2.2rem;
-    /* ↓【修正】お題の漢字にペタッと近づけるため、下のマージンを「0」に */
     margin-bottom: 0; 
     margin-top: 1rem;
   }
@@ -249,12 +241,11 @@
   /* Typing input display */
   .typing-area {
     width: 100%;
-        padding-bottom: 20vh;
-  
+    padding-bottom: 20vh;
   }
 
-.input-display {
-    font-size: 2.5rem;       /* タイピング文字の巨大サイズ */
+  .input-display {
+    font-size: 4.5rem;       
     font-weight: 900;       
     font-family: 'SF Pro Display', -apple-system, sans-serif;
     color: #1d1d1f;         
@@ -262,12 +253,8 @@
     text-align: center;     
     width: 100%;
     margin-top: 0.3rem;   
-    
-    /* ↓【今回の神修正】高さをフォントサイズと完全に一致させてロックします */
-    height: 4.5rem;          /* ←【追加】高さを4.5remに完全固定 */
-    line-height: 1.0;        /* ←【追加】行の高さによる遊び（上下の余白）をゼロに */
-    
-    /* 以前あった min-height: 5.0rem; などの記述は、この2行に置き換えるため削除します */
+    height: 4.5rem;          
+    line-height: 1.0;        
   }
 
   .char-done {
@@ -284,9 +271,9 @@
     opacity: 0.3; 
   }
 
-.input-display.error {
+  .input-display.error {
     border-color: var(--wrong);
-    background: transparent;    /* ←【修正】#fff1f0 から transparent（透明）に変更！ */
+    background: transparent;    
     animation: shake 0.2s ease;
   }
   @keyframes shake {
@@ -345,7 +332,6 @@
   }
   .result-stats span { color: var(--paper); font-weight: 700; }
 
-  /* リザルトのカード設定 */
   html body #app #result-screen .card {
     background: #ffffff;
     border: 1px solid #e5e5ea;
@@ -361,7 +347,7 @@
     display: none !important;
   }
 
-.result-kanji-item {
+  .result-kanji-item {
     background: #f5f5f7;
     padding: 0.5rem 0.6rem;
     border-radius: 4px;
@@ -370,9 +356,6 @@
     flex-direction: column;
     align-items: flex-start;
     justify-content: center;
-    
-    /* 【修正】一律の高さ制限を削除し、文字のときは自動で低くなるようにします */
-    /* min-height: 85px; ← この行を削除、またはコメントアウト */
   }
   .result-kanji-item .r-kanji {
     font-weight: 700;
@@ -385,7 +368,7 @@
     white-space: nowrap;
   }
   .result-kanji-item .r-image {
-    max-height: 55px; /* ←【修正】40pxから55pxに拡大！ */
+    max-height: 55px; 
     max-width: 100%;
     object-fit: contain;
     border-radius: 2px;
@@ -483,49 +466,48 @@
   }
 
   .switch-label {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.8rem;
-  cursor: pointer;
-  font-size: 0.95rem;
-  color: var(--paper);
-}
-.switch-input {
-  appearance: none;
-  width: 44px;
-  height: 24px;
-  background: #e5e5ea;
-  border-radius: 12px;
-  position: relative;
-  cursor: pointer;
-  transition: background 0.2s;
-  outline: none;
-}
-.switch-input::before {
-  content: '';
-  position: absolute;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  top: 2px;
-  left: 2px;
-  background: #ffffff;
-  transition: transform 0.2s;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
-}
-.switch-input:checked {
-  background: #34c759; /* ONのときはApple風の鮮やかなグリーンに */
-}
-.switch-input:checked::before {
-  transform: translateX(20px);
-}
+    display: inline-flex;
+    align-items: center;
+    gap: 0.8rem;
+    cursor: pointer;
+    font-size: 0.95rem;
+    color: var(--paper);
+  }
+  .switch-input {
+    appearance: none;
+    width: 44px;
+    height: 24px;
+    background: #e5e5ea;
+    border-radius: 12px;
+    position: relative;
+    cursor: pointer;
+    transition: background 0.2s;
+    outline: none;
+  }
+  .switch-input::before {
+    content: '';
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    top: 2px;
+    left: 2px;
+    background: #ffffff;
+    transition: transform 0.2s;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+  }
+  .switch-input:checked {
+    background: #34c759; 
+  }
+  .switch-input:checked::before {
+    transform: translateX(20px);
+  }
 
-.add-form {
+  .add-form {
     display: flex;
     gap: 0.5rem;
     width: 100%;
     flex-wrap: wrap;
-    /* 【追加】すべての入力欄やボタンの「下端（ベースライン）」を強制的にビシッと一直線に揃えます */
     align-items: flex-end; 
   }
 
@@ -541,13 +523,11 @@
     font-size: 0.9rem;
     outline: none;
     transition: border-color 0.1s;
-    /* 【追加】入力欄の高さを38pxに固定してボタンと一致させます */
     height: 38px; 
   }
   .field-input:focus { border-color: #000000; }
   .field-input::placeholder { color: #ccc; }
 
-  /* 各種画像選択用ボタンスタイル */
   .file-label-btn {
     background: #ffffff;
     border: 1px solid #d2d2d7;
@@ -559,14 +539,10 @@
     white-space: nowrap;
     color: var(--mist);
     transition: all 0.1s;
-
-    /* 高さを入力欄と完全に一致させ、ボタン内の文字を真ん中に配置 */
     height: 38px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    
-    /* 【追加】ボタンが下に沈み込むバグをリセットします */
     vertical-align: bottom; 
     margin: 0;
   }
@@ -614,8 +590,8 @@
 
   .sep { width: 30px; height: 1px; background: #e5e5ea; margin: 0.5rem 0; }
 
-.penalty-flash {
-    display: none !important; /* ←【追加】このエフェクト自体をこの世から消し去ります */
+  .penalty-flash {
+    display: none !important; 
     position: fixed;
     inset: 0;
     background: rgba(255, 59, 48, 0.08);
@@ -625,35 +601,33 @@
   }
   @keyframes penaltyAnim { 0% { opacity: 1; } 100% { opacity: 0; } }
 
-  /* インポートファイル用隠しクラス */
   #file-import, #input-image {
     display: none !important;
   }
 
   .home-x-link {
-  position: absolute;
-  right: 24px;
-  bottom: 24px;
-  font-size: 1.3rem;
-  color: var(--mist); /* 初期状態は少し控えめなグレー */
-  text-decoration: none;
-  font-weight: bold;
-  transition: all 0.2s ease;
-  width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  background: transparent;
-}
+    position: absolute;
+    right: 24px;
+    bottom: 24px;
+    font-size: 1.3rem;
+    color: var(--mist); 
+    text-decoration: none;
+    font-weight: bold;
+    transition: all 0.2s ease;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: transparent;
+  }
 
-/* マウスを載せたときに、文字が引き締まった黒になり、背景に薄いグレーが浮かび上がります */
-.home-x-link:hover {
-  color: var(--paper);
-  background: #f5f5f7;
-  transform: translateY(-2px); /* ほんの少し上に浮き上がるアニメーション */
-}
+  .home-x-link:hover {
+    color: var(--paper);
+    background: #f5f5f7;
+    transform: translateY(-2px); 
+  }
 </style>
 </head>
 <body>
@@ -664,8 +638,9 @@
     <div class="logo">みんなの<span>タイピング</span></div>
     <div class="logo-sub">Minnna no Typing</div>
     
-    <div style="color: var(--gold-light); margin-bottom: 2rem; font-family: 'Noto Serif JP', serif; text-align: center;">
-      現在の設定：<span id="start-template-name" style="font-weight: bold;">デフォルトのお題</span>
+    <div style="color: var(--gold-light); margin-bottom: 2rem; font-family: 'Noto Serif JP', serif; text-align: center; line-height: 1.6;">
+      現在の設定：<span id="start-template-name" style="font-weight: bold;">デフォルトのお題</span><br>
+      <span style="font-size: 0.8rem; color: var(--mist);">作者：<span id="start-author-name">未設定</span></span>
     </div>
 
     <div class="menu-grid">
@@ -684,7 +659,6 @@
     <a href="https://x.com/KiyuUre" target="_blank" rel="noopener noreferrer" class="home-x-link" title="Xを開く">
       𝕏
     </a>
-    
   </div>
 
   <div id="game-screen" class="screen">
@@ -700,8 +674,7 @@
       <div class="progress-bar-fill" id="progress-bar" style="width:0%"></div>
     </div>
 
-    <div class="kanji-stage" id="kanji-stage-area">
-      </div>
+    <div class="kanji-stage" id="kanji-stage-area"></div>
 
     <div class="typing-area">
       <div class="input-display" id="input-display"></div>
@@ -709,7 +682,7 @@
     </div>
   </div>
 
-<div id="result-screen" class="screen">
+  <div id="result-screen" class="screen">
     <div class="result-title">結果</div>
     <div>
       <div class="score-big" id="result-score">0.0</div>
@@ -730,12 +703,14 @@
       <button class="btn btn-secondary" onclick="showScreen('home-screen')">ホームへ</button>
     </div>
 
-        <div class="card" style="margin: 1.5rem 0; text-align: left;">
-      <h3 id="result-template-title" style="color: var(--gold); border-bottom: 1px solid rgba(0,0,0,0.1); padding-bottom: 0.5rem; margin-bottom: 1rem; font-family: 'Noto Serif JP', serif; font-size: 1.1rem;">
+    <div class="card" style="margin: 1.5rem 0; text-align: left;">
+      <h3 id="result-template-title" style="color: var(--gold); font-family: 'Noto Serif JP', serif; font-size: 1.1rem; margin-bottom: 0.2rem;">
         テンプレート: 未設定
       </h3>
-      <div id="result-kanji-list" style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.8rem; font-size: 0.95rem;">
+      <div id="result-author-title" style="font-size: 0.8rem; color: var(--mist); border-bottom: 1px solid rgba(0,0,0,0.1); padding-bottom: 0.5rem; margin-bottom: 1rem;">
+        作者: 未設定
       </div>
+      <div id="result-kanji-list" style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.8rem; font-size: 0.95rem;"></div>
     </div>
   </div>
 
@@ -748,13 +723,19 @@
         <input type="checkbox" id="setting-sound" class="switch-input" checked onchange="toggleSoundSetting(this.checked)">
       </label>
     </div>
+    
     <div class="settings-title" id="settings-title-text">お題設定</div>
 
-    <div class="card" style="margin-bottom: 1rem; text-align: left; background: var(--ink-light);">
-      <div style="font-size:0.8rem;color:var(--mist);letter-spacing:0.05em;margin-bottom:0.5rem;">テンプレート名（設定の名前）</div>
-      <div style="display: flex; gap: 0.5rem;">
-        <input type="text" id="input-template-name" placeholder="例: 小学校1年生、難読漢字など" class="field-input" style="flex: 1;">
-        <button class="btn btn-primary" onclick="saveTemplateName()" style="padding: 0 1.5rem; white-space: nowrap;">名前を保存</button>
+    <div class="card" style="margin-bottom: 1rem; text-align: left; background: var(--ink-light); padding: 1.5rem;">
+      <div style="display: flex; gap: 1rem; flex-wrap: wrap; width: 100%;">
+        <div style="flex: 1; min-width: 200px; display: flex; flex-direction: column;">
+          <div style="font-size:0.8rem;color:var(--mist);letter-spacing:0.05em;margin-bottom:0.5rem;">テンプレート名（設定の名前）</div>
+          <input type="text" id="input-template-name" placeholder="例: 魚編難読漢字" class="field-input" style="width: 100%;" oninput="saveTemplateMeta()">
+        </div>
+        <div style="flex: 1; min-width: 200px; display: flex; flex-direction: column;">
+          <div style="font-size:0.8rem;color:var(--mist);letter-spacing:0.05em;margin-bottom:0.5rem;">作者名（クリエイター）</div>
+          <input type="text" id="input-author-name" placeholder="例: タイピング太郎" class="field-input" style="width: 100%;" oninput="saveTemplateMeta()">
+        </div>
       </div>
     </div>
 
@@ -780,13 +761,16 @@
       </div>
     </div>
 
-    <div id="kanji-list" class="kanji-list" style="margin-top: 1rem;">
-    </div>
+    <div id="kanji-list" class="kanji-list" style="margin-top: 1rem;"></div>
 
-    <div class="io-row" style="margin-top: 1rem;">
-      <button class="btn btn-secondary" onclick="exportJSON()" style="flex:1;">⬇ JSONエクスポート</button>
-      <button class="btn btn-secondary" onclick="document.getElementById('file-import').click()" style="flex:1;">⬆ JSONインポート</button>
+    <div class="io-row" style="margin-top: 1rem; flex-wrap: wrap;">
+      <button class="btn btn-secondary" onclick="exportJSON()" style="flex:1; min-width: 130px;">⬇ JSON出力</button>
+      <button class="btn btn-secondary" onclick="document.getElementById('file-import').click()" style="flex:1; min-width: 130px;">⬆ JSON入力</button>
       <input type="file" id="file-import" accept=".json" onchange="importJSON(event)">
+      
+      <button id="btn-cloud-share" class="btn btn-primary" onclick="copyShareURL()" style="flex:1.2; min-width: 170px; gap: 0.3em; background: #0071e3; color: #ffffff; border: none;">
+        🔗 URLで共有
+      </button>
     </div>
 
     <div class="btn-group">
@@ -797,6 +781,269 @@
 </div>
 
 <div id="toast"></div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-app.js";
+  import { getDatabase, ref, push, get, child } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-database.js";
+
+  // たつひこさんのFirebaseプロジェクト設定値
+  const firebaseConfig = {
+    apiKey: "AIzaSyB3iLV7yh9AqkBbem61ExC10lmwLawBUF4",
+    authDomain: "newtypingapp.firebaseapp.com",
+    projectId: "newtypingapp",
+    storageBucket: "newtypingapp.firebasestorage.app",
+    messagingSenderId: "12856933587",
+    appId: "1:12856933587:web:bb5161ed46cef3d2226826"
+  };
+
+  // Firebaseの初期化
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+
+  // グローバル関数として登録し、HTML側から呼び出せるようにドッキング
+window.firebaseCopyShareURL = async function(isSilent = false) { // 💡 引数 isSilent を追加
+    if (kanjiList.length === 0) {
+      if (!isSilent) showToast('共有するお題が登録されていません');
+      return null;
+    }
+
+    // 1. まずは「文字だけ（従来方式）」でURLを作ってみる
+    try {
+      const dataObject = {
+        templateName: templateName,
+        authorName: authorName,
+        kanji: kanjiList
+      };
+      const jsonStr = JSON.stringify(dataObject);
+      const uint8 = new TextEncoder().encode(jsonStr);
+      let binString = "";
+      for (let i = 0; i < uint8.length; i++) {
+        binString += String.fromCharCode(uint8[i]);
+      }
+      const base64Data = btoa(binString);
+      const safeBase64 = base64Data.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+      
+      const textShareURL = window.location.origin + window.location.pathname + '?data=' + safeBase64;
+
+      if (textShareURL.length <= 10000) {
+        if (!isSilent) {
+          await navigator.clipboard.writeText(textShareURL);
+          showToast('🔗 共有URLをコピーしました');
+        }
+        return textShareURL; // 💡 作成したURLを返す
+      }
+    } catch (e) {
+      console.log("通常URL化スキップ（画像ありのためクラウドへ移行）");
+    }
+
+    // 2. 1万文字を超える場合（画像データが含まれる場合）は自動でクラウドに切り替え
+    const shareBtn = document.getElementById('btn-cloud-share');
+    if (shareBtn && !isSilent) {
+      shareBtn.disabled = true;
+      shareBtn.textContent = '⏳ 保存中...';
+    }
+
+    try {
+      const dataObject = {
+        templateName: templateName,
+        authorName: authorName,
+        kanji: kanjiList
+      };
+
+      const roomsRef = ref(db, 'shared_rooms');
+      const newRoomRef = push(roomsRef);
+      const roomId = newRoomRef.key;
+
+      await new Promise((resolve, reject) => {
+        import("https://www.gstatic.com/firebasejs/10.10.0/firebase-database.js").then(module => {
+          module.set(newRoomRef, dataObject).then(resolve).catch(reject);
+        });
+      });
+
+      const cloudShareURL = window.location.origin + window.location.pathname + '?id=' + roomId;
+
+      if (!isSilent) {
+        await navigator.clipboard.writeText(cloudShareURL);
+        showToast('🔗 共有URLをコピーしました');
+      }
+      return cloudShareURL; // 💡 作成したURLを返す
+
+    } catch (err) {
+      console.error("Firebase共有エラー:", err);
+      if (!isSilent) alert('保存に失敗しました。');
+      return null;
+    } finally {
+      if (shareBtn) {
+        shareBtn.disabled = false;
+        shareBtn.textContent = '🔗 URLで共有リンクをコピー';
+      }
+    }
+  };
+
+  // 📥 【ハイブリッド版】起動時のURL自動チェック・インポートシステム
+window.firebaseCopyShareURL = async function() {
+    if (kanjiList.length === 0) {
+      showToast('共有するお題が登録されていません');
+      return;
+    }
+
+    // 1. まずは「文字だけ（従来方式）」でURLを作ってみる
+    try {
+      const dataObject = {
+        templateName: templateName,
+        authorName: authorName,
+        kanji: kanjiList
+      };
+      const jsonStr = JSON.stringify(dataObject);
+      const uint8 = new TextEncoder().encode(jsonStr);
+      let binString = "";
+      for (let i = 0; i < uint8.length; i++) {
+        binString += String.fromCharCode(uint8[i]);
+      }
+      const base64Data = btoa(binString);
+      const safeBase64 = base64Data.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+      
+      const textShareURL = window.location.origin + window.location.pathname + '?data=' + safeBase64;
+
+      // URLが10,000文字以下ならその場で終了
+      if (textShareURL.length <= 10000) {
+        await navigator.clipboard.writeText(textShareURL);
+        showToast('🔗 共有URLをコピーしました'); // ✨ シンプルに修正
+        return; 
+      }
+    } catch (e) {
+      console.log("通常URL化スキップ（画像ありのためクラウドへ移行）");
+    }
+
+    // 2. 1万文字を超える場合（画像データが含まれる場合）は自動でクラウドに切り替え
+    const shareBtn = document.getElementById('btn-cloud-share');
+    shareBtn.disabled = true;
+    shareBtn.textContent = '⏳ 保存中...'; // ✨ シンプルに修正
+
+    try {
+      const dataObject = {
+        templateName: templateName,
+        authorName: authorName,
+        kanji: kanjiList
+      };
+
+      const roomsRef = ref(db, 'shared_rooms');
+      const newRoomRef = push(roomsRef);
+      const roomId = newRoomRef.key;
+
+      await new Promise((resolve, reject) => {
+        import("https://www.gstatic.com/firebasejs/10.10.0/firebase-database.js").then(module => {
+          module.set(newRoomRef, dataObject).then(resolve).catch(reject);
+        });
+      });
+
+      const cloudShareURL = window.location.origin + window.location.pathname + '?id=' + roomId;
+
+      await navigator.clipboard.writeText(cloudShareURL);
+      showToast('🔗 共有URLをコピーしました'); // ✨ シンプルに修正
+
+    } catch (err) {
+      console.error("Firebase共有エラー:", err);
+      alert('保存に失敗しました。');
+    } finally {
+      shareBtn.disabled = false;
+      shareBtn.textContent = '🔗 URLで共有';
+    }
+  };
+
+  // 📥 【シンプルメッセージ版】起動時のURL自動チェック・インポートシステム
+  window.firebaseCheckURLParam = async function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    
+    // 分岐パターンA: 「?data=〜」（文字データのみのURL）だった場合
+    const sharedTextData = urlParams.get('data');
+    if (sharedTextData) {
+      try {
+        let base64 = sharedTextData.replace(/-/g, '+').replace(/_/g, '/');
+        while (base64.length % 4) { base64 += '='; }
+        
+        const binString = atob(base64);
+        const uint8 = new Uint8Array(binString.length);
+        for (let i = 0; i < binString.length; i++) {
+          uint8[i] = binString.charCodeAt(i);
+        }
+        const decodedStr = new TextDecoder().decode(uint8);
+        const data = JSON.parse(decodedStr);
+        const list = data.kanji || data;
+
+        if (Array.isArray(list)) {
+          kanjiList = list.filter(item => item.reading && (item.kanji || item.image));
+          saveKanjiList();
+          applyImportedData(data);
+          showToast(`✨ 「${templateName}」を読み込みました`); // ✨ シンプルに修正
+        }
+      } catch (err) {
+        console.error("テキストURLデコードエラー:", err);
+      }
+      return;
+    }
+
+    // 分岐パターンB: 「?id=〜」（画像付き保存URL）だった場合
+    const roomId = urlParams.get('id');
+    if (!roomId) return;
+
+    showToast('⏳ データを読み込み中...'); // ✨ シンプルに修正
+
+    try {
+      const dbRef = ref(db);
+      const snapshot = await get(child(dbRef, `shared_rooms/${roomId}`));
+
+      if (snapshot.exists()) {
+        const data = snapshot.val();
+        const list = data.kanji || data;
+
+        if (Array.isArray(list)) {
+          kanjiList = list.filter(item => item.reading && (item.kanji || item.image));
+          saveKanjiList();
+          applyImportedData(data);
+          showToast(`✨ 「${templateName}」を読み込みました`); // ✨ シンプルに修正
+        }
+      } else {
+        showToast('⚠️ 指定されたデータが見つかりませんでした。');
+      }
+    } catch (err) {
+      console.error("Firebase読み込みエラー:", err);
+      showToast('⚠️ データの読み込みに失敗しました。');
+    }
+  };
+
+  // UI反映用共通ヘルパー関数
+  function applyImportedData(data) {
+    templateName = data.templateName || 'デフォルトのお題';
+    authorName = data.authorName || '';
+    
+    localStorage.setItem('kanji-dojo-template-name', templateName);
+    localStorage.setItem('kanji-dojo-author-name', authorName);
+
+    document.getElementById('input-template-name').value = templateName;
+    document.getElementById('input-author-name').value = authorName;
+    document.getElementById('start-template-name').textContent = templateName;
+
+    const startAuthorLabel = document.getElementById('start-author-name');
+    if (startAuthorLabel) {
+      if (authorName) {
+        startAuthorLabel.textContent = authorName;
+        if (startAuthorLabel.parentElement) startAuthorLabel.parentElement.style.display = 'inline';
+      } else {
+        if (startAuthorLabel.parentElement) startAuthorLabel.parentElement.style.display = 'none';
+      }
+    }
+
+    renderKanjiList();
+    updateHomeCount();
+
+    // URLのパラメータを消してスッキリさせる
+    window.history.replaceState({}, document.title, window.location.pathname);
+  }
+
+  // 実行
+  window.firebaseCheckURLParam();
+</script>
 
 <script>
 // ========== ROMANIZATION TABLE ==========
@@ -830,7 +1077,7 @@ const KANA_TO_ROMAJI = {
   'ぴゃ': ['pya'], 'ぴゅ': ['pyu'], 'ぴょ': ['pyo'],
   'ふぁ': ['fa'], 'ふぃ': ['fi'], 'ふぇ': ['fe'], 'ふぉ': ['fo'],
   'ぁ': ['xa','la'], 'ぃ': ['xi','li'], 'ぅ': ['xu','lu'], 'ぇ': ['xe','le'], 'ぉ': ['xo','lo'],
-  'っ': ['xtu','ltu','ltsu','xtsu'],
+  'っ': ['xtu','ltu','ltsu','xtsu'],'ゃ': ['xya','lya'],'ゅ': ['xyu','lyu'],'ょ': ['xyo','lyo'],
 };
 
 function kanaToRomajiOptions(readingInput) {
@@ -917,7 +1164,9 @@ const DEFAULT_KANJI = [
 // ========== STATE ==========
 let kanjiList = JSON.parse(localStorage.getItem('kanji-dojo-list') || JSON.stringify(DEFAULT_KANJI));
 let templateName = 'デフォルトのお題';
+let authorName = ''; 
 let playedTemplateName = ''; 
+let playedAuthorName = '';   
 let playedKanjiList = [];
 let gameQueue = [];
 let currentIndex = 0;
@@ -928,27 +1177,25 @@ let currentTyped = '';
 let currentValidOptions = [];
 let currentDisplayOption = '';
 let hintShown = false;
-let currentUploadedImageBase64 = ''; // 一時保存用の画像変数
+let currentUploadedImageBase64 = ''; 
 
 let questionStartTime = 0;
 let timeRecords = [];
-let isGameRetire = false; // 【✨追加】ゲームをリタイアしたかどうかの状態フラグ
+let isGameRetire = false; 
 let isSoundOn = true;
-let missCount = 0; // 【✨追加】ゲーム中の総ミスタイプ数を記憶する変数
+let missCount = 0; 
 let isFirstKeyStroke = true;
 
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
 function playTone(freq, type, duration, vol = 0.1) {
   try {
-    // 音のパーツを作成
     const osc = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
     
-    osc.type = type;            // 音の種類 ('sine', 'square', 'sawtooth', 'triangle')
-    osc.frequency.value = freq; // 音の高さ (Hz)
+    osc.type = type;            
+    osc.frequency.value = freq; 
     
-    // 音量の調整（だんだん小さくしてブツ切れ音を防ぐ）
     gain.gain.setValueAtTime(vol, audioCtx.currentTime);
     gain.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + duration);
     
@@ -962,30 +1209,21 @@ function playTone(freq, type, duration, vol = 0.1) {
   }
 }
 
-// 各タイミングの音の鳴らし方を定義
 const SE = {
-  // タイピング正解：短く高い「ピピッ」という小気味よい打鍵音
   keyCorrect: function() {
     playTone(1200, 'sine', 0.05, 0.05);
   },
-  
-  // タイピングミス：少し低めの濁った「ブッ」という警告音
   keyWrong: function() {
     playTone(150, 'sawtooth', 0.12, 0.08);
   },
-  
-  // 問題クリア：お馴染みの「ピンポーン」という高い2連続の正解音
   allCorrect: function() {
-    const now = audioCtx.currentTime;
-    playTone(523.25, 'sine', 0.15, 0.1); // ド
+    playTone(523.25, 'sine', 0.15, 0.1); 
     setTimeout(() => {
-      playTone(659.25, 'sine', 0.25, 0.1); // ミ
+      playTone(659.25, 'sine', 0.25, 0.1); 
     }, 100);
   },
-  
-  // 全問完走：チャラチャラチャラーン！という華やかなファンファーレ
   gameClear: function() {
-    const tones = [523.25, 587.33, 659.25, 783.99, 1046.50]; // ド・レ・ミ・ソ・ド
+    const tones = [523.25, 587.33, 659.25, 783.99, 1046.50]; 
     tones.forEach((freq, index) => {
       setTimeout(() => {
         playTone(freq, 'triangle', 0.4, 0.1);
@@ -994,11 +1232,8 @@ const SE = {
   }
 };
 
-// 前のコードの互換性のために再生用関数を形だけ残す
 function playSE(seFunction) {
-  // 【✨追加】音声設定がOFFなら、何もせずにここで処理をストップする
   if (!isSoundOn) return;
-
   if (audioCtx.state === 'suspended') {
     audioCtx.resume();
   }
@@ -1037,12 +1272,36 @@ function updateHomeCount() {
   }
 }
 
-function saveTemplateName() {
-  const input = document.getElementById('input-template-name').value.trim();
-  templateName = input || 'デフォルトのお題';
+// 💡 クラウド共有をモジュールに託すためのラッパー関数に更新
+function copyShareURL() {
+  if (typeof window.firebaseCopyShareURL === 'function') {
+    window.firebaseCopyShareURL();
+  } else {
+    showToast('⏳ クラウドシステムを準備中です。1秒後にやり直してください。');
+  }
+}
+
+function saveTemplateMeta() {
+  const nameInput = document.getElementById('input-template-name').value.trim();
+  const authorInput = document.getElementById('input-author-name').value.trim();
+  
+  templateName = nameInput || 'デフォルトのお題';
+  authorName = authorInput || ''; 
+  
   localStorage.setItem('kanji-dojo-template-name', templateName);
+  localStorage.setItem('kanji-dojo-author-name', authorName); 
+  
   document.getElementById('start-template-name').textContent = templateName;
-  showToast('テンプレート名を保存しました');
+  
+  const startAuthorLabel = document.getElementById('start-author-name');
+  if (startAuthorLabel) {
+    if (authorName) {
+      startAuthorLabel.textContent = authorName;
+      if (startAuthorLabel.parentElement) startAuthorLabel.parentElement.style.display = 'inline';
+    } else {
+      if (startAuthorLabel.parentElement) startAuthorLabel.parentElement.style.display = 'none';
+    }
+  }
 }
 
 function shuffle(arr) {
@@ -1054,7 +1313,6 @@ function shuffle(arr) {
   return a;
 }
 
-// 画像の読み込み処理
 function handleImageUpload(event) {
   const file = event.target.files[0];
   if (!file) return;
@@ -1063,8 +1321,8 @@ function handleImageUpload(event) {
   reader.onload = function(e) {
     const img = new Image();
     img.onload = function() {
-      // ===== 📸 画像の自動縮小（リサイズ）システム =====
-      const MAX_WIDTH = 800; 
+      // 📸 デスクトップからの画像：高画質を極力守るため上限を横幅1200pxに引き上げ拡張
+      const MAX_WIDTH = 1200; 
       let width = img.width;
       let height = img.height;
       
@@ -1078,17 +1336,13 @@ function handleImageUpload(event) {
       canvas.height = height;
       const ctx = canvas.getContext('2d');
 
-      // 【✨今回の修正点】透過素材の背景を真っ白にする処理
-      ctx.fillStyle = '#ffffff'; // 白色を指定
-      ctx.fillRect(0, 0, width, height); // 先にキャンバス全体を白く塗りつぶす
+      ctx.fillStyle = '#ffffff'; 
+      ctx.fillRect(0, 0, width, height); 
 
-      // 白い背景の上に元の画像を重ねて描画（透明な部分が白になります）
       ctx.drawImage(img, 0, 0, width, height);
+      // クラウドに保存するため、画質は高クオリティ（0.9）で贅沢に保存！
+      currentUploadedImageBase64 = canvas.toDataURL('image/jpeg', 0.9);
       
-      // JPEG形式のBase64データに変換
-      currentUploadedImageBase64 = canvas.toDataURL('image/jpeg', 0.8);
-      
-      // 選択済みの見た目にする処理
       const btn = document.getElementById('image-label-btn');
       if (btn) {
         btn.textContent = '✔️ 選択済';
@@ -1113,10 +1367,11 @@ function startGame() {
     : null;
   
   playedTemplateName = templateName;
+  playedAuthorName = authorName; 
   playedKanjiList = [...kanjiList]; 
   timeRecords = []; 
-  missCount = 0; // 【✨追加】新しいゲームが始まるので、ミス数を 0 にリセット
-      questionStartTime = elapsedTime; // 1問目の計測開始時間を「0秒」に確定させる
+  missCount = 0; 
+  questionStartTime = elapsedTime; 
   
   let shuffledQueue = shuffle(kanjiList);
   
@@ -1126,18 +1381,16 @@ function startGame() {
     shuffledQueue[1] = temp;
   }
   
-gameQueue = shuffledQueue;
+  gameQueue = shuffledQueue;
   currentIndex = 0;
   elapsedTime = 0;
   penaltySeconds = 0;
   
   showScreen('game-screen');
   document.getElementById('progress-total').textContent = gameQueue.length;
-  
-  // ✨【今回の修正：追加】画面のタイマー表示を確実に「0.0」にリセットする
   document.getElementById('timer-display').textContent = '0.0'; 
   
-  isFirstKeyStroke = true; // 初打鍵の待ち受け状態にします
+  isFirstKeyStroke = true; 
   
   loadQuestion(0);
   document.addEventListener('keydown', onKeyDown);
@@ -1169,15 +1422,12 @@ function loadQuestion(idx) {
   const stageArea = document.getElementById('kanji-stage-area');
   stageArea.innerHTML = ''; 
   
-  // 1. 【一番上】読み（ヒント用の枠）を先に作成して配置
   const hintDiv = document.createElement('div');
   hintDiv.className = 'reading-hint';
   hintDiv.id = 'reading-hint';
-  // 初期状態（エンターを押す前）は中身を空っぽ（非表示）にしておく
   hintDiv.textContent = ''; 
   stageArea.appendChild(hintDiv);
   
-  // 2. 【中央】お題（画像問題 or 文字問題）を判定して配置
   if (item.image) {
     stageArea.style.minHeight = '400px'; 
     const img = document.createElement('img');
@@ -1194,11 +1444,9 @@ function loadQuestion(idx) {
     stageArea.appendChild(span);
   }
   
-  // 3. 各種カウンター等の更新
   document.getElementById('progress-current').textContent = idx + 1;
   document.getElementById('progress-bar').style.width = ((idx / gameQueue.length) * 100) + '%';
   
-  // 4. 下部のタイピング内容（ローマ字）を中央揃えで描画
   renderInputDisplay();
 }
 
@@ -1211,26 +1459,18 @@ function renderInputDisplay() {
     const span = document.createElement('span');
     
     if (i < currentTyped.length) {
-      // ① すでに【入力し終わった】文字：くっきり黒文字
       span.textContent = target[i];
       span.className = 'char-done';
     } else if (i === currentTyped.length) {
-      // ② これから【まさに打ち込む】1文字目
       if (!hintShown) {
-        span.textContent = ' '; // ヒントなしなら空白
+        span.textContent = ' '; 
       } else {
-        span.textContent = target[i]; // ヒントありなら文字を表示
+        span.textContent = target[i]; 
       }
-      
-      // ✨【ここを修正】ヒントONのときも黒く目立たせないよう、
-      // 打ち終わった文字（char-done）ではないことを示す薄い見た目（char-pending）に固定します
       span.className = 'char-pending';
-      
-      // 次の1文字であることが視覚的にわかるよう、下線（アンダーライン）の装飾だけを優しく追加
       span.style.borderBottom = '3px solid var(--paper)';
       span.style.paddingBottom = '2px';
     } else {
-      // ③ それ以降の【まだ打たない】文字
       if (!hintShown) {
         span.textContent = ' '; 
         span.style.visibility = 'hidden'; 
@@ -1238,7 +1478,7 @@ function renderInputDisplay() {
         span.textContent = target[i];
         span.style.visibility = 'visible'; 
       }
-      span.className = 'char-pending'; // 薄いグレー
+      span.className = 'char-pending'; 
     }
     container.appendChild(span);
   }
@@ -1251,59 +1491,46 @@ function onKeyDown(e) {
   const ch = e.key.toLowerCase();
   if (!/[a-z]/.test(ch)) return;
 
-  // 【✨今回のメイン修正点】
-  // 有効なアルファベット（a-z）が押され、かつゲーム中「最初の一文字」だった場合
   if (isFirstKeyStroke) {
-    isFirstKeyStroke = false; // 二度目以降は通らないようにフラグを折る
-    startTimer();             // ⏱️ ここでついにタイマーを始動！
-    questionStartTime = elapsedTime; // 1問目の計測開始時間を「0秒」に確定させる
+    isFirstKeyStroke = false; 
+    startTimer();             
+    questionStartTime = elapsedTime; 
   }
 
   const newTyped = currentTyped + ch;
   const allOpts = currentValidOptions;
   
-  // 1. その問題の最後の1文字を打ち込んで【問題正解】したとき
   const complete = allOpts.find(opt => opt === newTyped);
-if (complete) {
+  if (complete) {
     currentTyped = newTyped;
     currentDisplayOption = complete;
     renderInputDisplay();
     
     playSE(SE.allCorrect); 
     
-    // 【修正】現在の全体時間から、この問題が始まった時間を引いて「かかった時間」を出します
-    // ※先ほど追加したペナルティの引き算は、このバグが直れば不要（自然に正しい数値になる）なため、
-    // シンプルでバグの起きにくい元の綺麗な計算式に戻しています。
     const questionDuration = elapsedTime - questionStartTime;
-    
     timeRecords.push({
       kanji: gameQueue[currentIndex].kanji,
       time: questionDuration
     });
     
-    // ✨【今回の最重要修正：追加】
-    // この問題が解き終わった「今の時間」を、次の問題の「開始時間」として上書き保存します！
     questionStartTime = elapsedTime; 
     
     advanceQuestion();
     return;
   }
   
-  // 2. 正しいタイピング（途中）のとき
   const prefixMatch = allOpts.filter(opt => opt.startsWith(newTyped));
   if (prefixMatch.length > 0) {
     currentTyped = newTyped;
     currentDisplayOption = prefixMatch[0];
     renderInputDisplay();
     
-    playSE(SE.keyCorrect); // ✨【追加】タイピング成功のカチッ音！
+    playSE(SE.keyCorrect); 
   } else {
-    // 3. タイピングを【間違えた】とき
     flashError();
-    
-playSE(SE.keyWrong); 
-    
-    missCount++; // 【✨追加】タイピングミスが発生したのでカウントを1増やす
+    playSE(SE.keyWrong); 
+    missCount++; 
   }
 }
 
@@ -1313,9 +1540,6 @@ function flashError() {
     el.classList.add('error');
     setTimeout(() => el.classList.remove('error'), 300);
   }
-  
-  // 💡 以前この中にあった「画面全体に penalty-flash クラスを仕込む（赤く光らせる）処理」を
-  // 完全に削除（あるいは最初から入っていない状態に固定）しました。
 }
 
 function showHint() {
@@ -1345,14 +1569,11 @@ function endGame(isEscaped = false) {
   clearInterval(timerInterval);
   document.removeEventListener('keydown', onKeyDown);
   
-  // 【✨追加】リタイア状態をフラグに記憶します
   isGameRetire = isEscaped; 
   
   document.getElementById('progress-bar').style.width = '100%';
   document.getElementById('res-total').textContent = gameQueue.length;
   document.getElementById('res-penalty').textContent = penaltySeconds;
-  
-  // 【✨追加】数え上げたミスタイプ数を結果画面のパーツに反映
   document.getElementById('res-miss-count').textContent = missCount;
 
   const scoreBig = document.getElementById('result-score');
@@ -1365,11 +1586,21 @@ function endGame(isEscaped = false) {
   } else {
     scoreBig.textContent = elapsedTime.toFixed(1);
     if (scoreUnit) scoreUnit.style.display = 'inline-block'; 
-    playSE(SE.gameClear); // ✨【追加】else（通常クリア）の中にファンファーレ音を挿入！
+    playSE(SE.gameClear); 
   }
 
   document.getElementById('result-template-title').textContent = `テンプレート: ${playedTemplateName}`;
   
+  const resAuthorTitle = document.getElementById('result-author-title');
+  if (resAuthorTitle) {
+    if (playedAuthorName && playedAuthorName !== '未設定') {
+      resAuthorTitle.textContent = `作者: ${playedAuthorName}`;
+      resAuthorTitle.style.display = 'block'; 
+    } else {
+      resAuthorTitle.style.display = 'none';  
+    }
+  }
+
   const slowestContainer = document.getElementById('res-slowest');
   if (slowestContainer && timeRecords.length > 0) {
     const slowest = timeRecords.reduce((max, item) => item.time > max.time ? item : max, timeRecords[0]);
@@ -1385,7 +1616,6 @@ function endGame(isEscaped = false) {
     const div = document.createElement('div');
     div.className = 'result-kanji-item';
     
-    // 画像があれば画像を一覧に置き、枠を高めにする
     if (item.image) {
       div.style.minHeight = '85px'; 
       const img = document.createElement('img');
@@ -1425,7 +1655,6 @@ function renderKanjiList() {
     const div = document.createElement('div');
     div.className = 'kanji-item';
     
-    // リスト内の画像サムネイルの有無
     const mediaHTML = item.image 
       ? `<img src="${item.image}" class="ki-thumb">` 
       : `<div class="ki-no-thumb">(文字)</div>`;
@@ -1458,35 +1687,28 @@ function addKanji() {
   }
   if (!kanji) kanji = '（画像問題）';
 
-  // 1. リストに出題データを追加
   kanjiList.push({ 
     kanji: kanji, 
     reading: reading,
     image: currentUploadedImageBase64 
   });
   
-  // 2. ローカルストレージに保存
   saveKanjiList();
   
-  // 3. 【修正・強化】入力フォームと選択された画像内容を完全に初期化（リセット）
   document.getElementById('input-kanji').value = '';
   document.getElementById('input-reading').value = '';
   
-  // 実際のファイル入力パーツを空にする
   const fileInput = document.getElementById('input-image');
   if (fileInput) fileInput.value = ''; 
   
-  // 内部の画像データ変数を空っぽにする
   currentUploadedImageBase64 = '';
   
-  // 見た目のボタン（📁 選択）を初期状態に戻す
   const labelBtn = document.getElementById('image-label-btn');
   if (labelBtn) {
     labelBtn.textContent = '📁 選択';
     labelBtn.classList.remove('loaded');
   }
   
-  // 4. 画面の更新
   renderKanjiList();
   updateHomeCount();
   showToast(`新しく出題を追加しました`);
@@ -1505,6 +1727,7 @@ function exportJSON() {
   const dataObject = {
     version: 1,
     templateName: templateName, 
+    authorName: authorName, 
     kanji: kanjiList
   };
   
@@ -1527,11 +1750,9 @@ function importJSON(event) {
   reader.onload = (e) => {
     try {
       const data = JSON.parse(e.target.result);
-      
       const list = data.kanji || data;
       if (!Array.isArray(list)) throw new Error('invalid');
       
-      // 画像付きJSONの読み込みに対応
       kanjiList = list.filter(item => item.reading && (item.kanji || item.image));
       saveKanjiList();
       
@@ -1545,6 +1766,33 @@ function importJSON(event) {
         if (startLabel) startLabel.textContent = templateName;
       }
       
+      const authorField = document.getElementById('input-author-name');
+      const startAuthorLabel = document.getElementById('start-author-name');
+      
+      if (data.authorName && data.authorName !== '未設定') {
+        authorName = data.authorName;
+        localStorage.setItem('kanji-dojo-author-name', authorName);
+        
+        if (startAuthorLabel) {
+          startAuthorLabel.textContent = authorName;
+          if (startAuthorLabel.parentElement) {
+            startAuthorLabel.parentElement.style.display = 'inline';
+          }
+        }
+        if (authorField) authorField.value = authorName;
+      } else {
+        authorName = ''; 
+        localStorage.setItem('kanji-dojo-author-name', '');
+        
+        if (startAuthorLabel) {
+          startAuthorLabel.textContent = '';
+          if (startAuthorLabel.parentElement) {
+            startAuthorLabel.parentElement.style.display = 'none';
+          }
+        }
+        if (authorField) authorField.value = '';
+      }
+      
       renderKanjiList();
       updateHomeCount();
       showToast(`${kanjiList.length}件の設定をインポートしました`);
@@ -1556,17 +1804,20 @@ function importJSON(event) {
   event.target.value = '';
 }
 
-// 𝕏シェア用関数
-function shareOnX() {
+async function shareOnX() {
   const totalCount = gameQueue.length;
   let text = '';
   
-  // 【✨今回のメイン修正点】リタイア時と通常クリア時でXの投稿内容を分岐させる
-  if (isGameRetire) {
-    // Escapeキーで中断（リタイア）した場合の文章
-    text = `${playedTemplateName} に挑戦しましたが、途中でリタイアしました。`;
+  let titleText = '';
+  if (playedAuthorName && playedAuthorName !== '未設定') {
+    titleText = `${playedAuthorName}さんの「${playedTemplateName}」`;
   } else {
-    // 通常クリアした場合の文章
+    titleText = `「${playedTemplateName}」`;
+  }
+  
+  if (isGameRetire) {
+    text = `${titleText} に挑戦しましたが、途中でリタイアしました。`;
+  } else {
     const scoreTime = elapsedTime.toFixed(1);
     
     let slowestText = 'なし';
@@ -1575,7 +1826,22 @@ function shareOnX() {
       slowestText = `「${slowest.kanji}」の ${slowest.time.toFixed(1)}秒`;
     }
     
-    text = `${playedTemplateName} の全${totalCount}問をクリアしました。所要時間は【${scoreTime}秒】です。\nミスタイプ数は${missCount}回、最も入力に時間がかかったお題は、${slowestText}でした。`;
+    text = `${titleText} の全${totalCount}問をクリアしました。所要時間は【${scoreTime}秒】です。\nミスタイプ数は${missCount}回、最も入力に時間がかかったお題は、${slowestText}でした。`;
+  }
+
+  // ✨【今回の核】裏側でこのゲームの共有URLを自動生成する（通知を出さないサイレントモード）
+  let gameShareUrl = '';
+  if (typeof window.firebaseCopyShareURL === 'function') {
+    // リザルト画面専用にトースト通知などを出さずにURLだけを裏で取得します
+    const generatedUrl = await window.firebaseCopyShareURL(true);
+    if (generatedUrl) {
+      gameShareUrl = generatedUrl;
+    }
+  }
+
+  // ポストする文章の最後に、生成されたプレイ用URLをドッキング
+  if (gameShareUrl) {
+    text += `\n\n👇このお題でタイピングに挑戦！\n${gameShareUrl}`;
   }
 
   const hashtags = 'みんなのタイピング';
@@ -1587,21 +1853,30 @@ function shareOnX() {
 // 起動時および初期設定の読み込み
 (function init() {
   const savedTemplate = localStorage.getItem('kanji-dojo-template-name');
-  if (savedTemplate) {
-    templateName = savedTemplate;
-  }
+  if (savedTemplate) templateName = savedTemplate;
   
-  // 【✨追加】保存された音声設定（ON/OFF）を読み込む（デフォルトはON）
+  const savedAuthor = localStorage.getItem('kanji-dojo-author-name');
+  if (savedAuthor) authorName = savedAuthor;
+  
   const savedSound = localStorage.getItem('kanji-dojo-sound-on');
-  if (savedSound !== null) {
-    isSoundOn = (savedSound === 'true');
-  }
+  if (savedSound !== null) isSoundOn = (savedSound === 'true');
   
   window.addEventListener('DOMContentLoaded', () => {
     document.getElementById('input-template-name').value = templateName;
+    document.getElementById('input-author-name').value = (authorName === '未設定' || !authorName) ? '' : authorName; 
+    
     document.getElementById('start-template-name').textContent = templateName;
     
-    // スイッチの見た目に設定を反映
+    const startAuthorLabel = document.getElementById('start-author-name');
+    if (startAuthorLabel) {
+      if (authorName && authorName !== '未設定') {
+        startAuthorLabel.textContent = authorName;
+        if (startAuthorLabel.parentElement) startAuthorLabel.parentElement.style.display = 'inline';
+      } else {
+        if (startAuthorLabel.parentElement) startAuthorLabel.parentElement.style.display = 'none';
+      }
+    }
+    
     const soundCheckbox = document.getElementById('setting-sound');
     if (soundCheckbox) soundCheckbox.checked = isSoundOn;
     
@@ -1609,16 +1884,11 @@ function shareOnX() {
   });
 })();
 
-// 【✨追加】スイッチが切り替わったときに実行される関数
 function toggleSoundSetting(checked) {
   isSoundOn = checked;
   localStorage.setItem('kanji-dojo-sound-on', checked);
   showToast(checked ? '音声をONにしました' : '音声をOFFにしました');
 }
-
-//document.getElementById('input-reading').addEventListener('keydown', e => {
-//  if (e.key === 'Enter') addKanji();
-//});
 </script>
 </body>
 </html>
