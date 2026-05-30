@@ -1042,9 +1042,12 @@ window.firebaseCopyShareURL = async function(isSilent = false) { // 💡 引数 
         kanji: kanjiList
       };
 
-      const roomsRef = ref(db, 'shared_rooms');
+const roomsRef = ref(db, 'shared_rooms');
       const newRoomRef = push(roomsRef);
       const roomId = newRoomRef.key;
+      
+      // 💡【追加】発行したIDを記憶しておきます！
+      currentCloudId = roomId; 
 
       await new Promise((resolve, reject) => {
         import("https://www.gstatic.com/firebasejs/10.10.0/firebase-database.js").then(module => {
@@ -1164,7 +1167,7 @@ window.firebaseCopyShareURL = async function(isSilent = false) {
   };
 
   // 📥 【シンプルメッセージ版】起動時のURL自動チェック・インポートシステム
-  window.firebaseCheckURLParam = async function() {
+window.firebaseCheckURLParam = async function() {
     const urlParams = new URLSearchParams(window.location.search);
     
     // 分岐パターンA: 「?data=〜」（文字データのみのURL）だった場合
@@ -1173,7 +1176,6 @@ window.firebaseCopyShareURL = async function(isSilent = false) {
       try {
         let base64 = sharedTextData.replace(/-/g, '+').replace(/_/g, '/');
         while (base64.length % 4) { base64 += '='; }
-        
         const binString = atob(base64);
         const uint8 = new Uint8Array(binString.length);
         for (let i = 0; i < binString.length; i++) {
@@ -1187,7 +1189,7 @@ window.firebaseCopyShareURL = async function(isSilent = false) {
           kanjiList = list.filter(item => item.reading && (item.kanji || item.image));
           saveKanjiList();
           applyImportedData(data);
-          showToast(`✨ 「${templateName}」を読み込みました`); // ✨ シンプルに修正
+          showToast(`✨ 「${templateName}」を読み込みました`); 
         }
       } catch (err) {
         console.error("テキストURLデコードエラー:", err);
@@ -1197,65 +1199,97 @@ window.firebaseCopyShareURL = async function(isSilent = false) {
 
     // 分岐パターンB: 「?id=〜」（画像付き保存URL）だった場合
     const roomId = urlParams.get('id');
-    if (!roomId) return;
-
-    showToast('データを読み込み中...'); // ✨ シンプルに修正
-
-    try {
-      const dbRef = ref(db);
-      const snapshot = await get(child(dbRef, `shared_rooms/${roomId}`));
-
-      if (snapshot.exists()) {
-        const data = snapshot.val();
-        const list = data.kanji || data;
-
-        if (Array.isArray(list)) {
-          kanjiList = list.filter(item => item.reading && (item.kanji || item.image));
-          saveKanjiList();
-          applyImportedData(data);
-          showToast(`✨ 「${templateName}」を読み込みました`); // ✨ シンプルに修正
+    if (roomId) {
+      currentCloudId = roomId; 
+      showToast('データを読み込み中...'); 
+      try {
+        const snapshot = await window.getFirebaseDataById(roomId);
+        if (snapshot) {
+          const data = snapshot;
+          const list = data.kanji || data;
+          if (Array.isArray(list)) {
+            kanjiList = list.filter(item => item.reading && (item.kanji || item.image));
+            saveKanjiList();
+            applyImportedData(data);
+            showToast(`✨ 「${templateName}」を読み込みました`); 
+          }
+        } else {
+          showToast('⚠️ 指定されたデータが見つかりませんでした。');
         }
-      } else {
-        showToast('⚠️ 指定されたデータが見つかりませんでした。');
+      } catch (err) {
+        console.error("Firebase読み込みエラー:", err);
+        showToast('⚠️ データの読み込みに失敗しました。');
       }
-    } catch (err) {
-      console.error("Firebase読み込みエラー:", err);
-      showToast('⚠️ データの読み込みに失敗しました。');
+      return;
+    }
+
+    // 🎯【たつひこさんのアイデア適用】
+    // URLに何もない（普通にアクセスした）場合、最新の履歴からクラウドIDを探して復元します！
+    const historyData = JSON.parse(localStorage.getItem('typing-play-history') || '[]');
+    if (historyData.length > 0 && historyData[0].cloudId) {
+      const latestCloudId = historyData[0].cloudId;
+      
+      // メモリ上のデータに "EXTERNAL_IMAGE" が含まれているか（復元が必要か）チェック
+      const needsRestore = kanjiList.some(item => item.image === "EXTERNAL_IMAGE");
+      
+      if (needsRestore) {
+        showToast('⏳ クラウドから前回のデータを復元中...');
+        try {
+          const snapshot = await window.getFirebaseDataById(latestCloudId);
+          if (snapshot && snapshot.kanji) {
+            currentCloudId = latestCloudId;
+            kanjiList = snapshot.kanji; // メモリに高画質データを完全復活！
+            saveKanjiList();
+            applyImportedData(snapshot);
+            showToast('✨ 前回のデータを復元しました');
+          }
+        } catch (err) {
+          console.log("履歴からの復元エラー:", err);
+        }
+      }
     }
   };
 
   // UI反映用共通ヘルパー関数
 function applyImportedData(data) {
-    templateName = data.templateName || '無題のお題';
-    authorName = data.authorName || '';
+    if (!data) return;
+
+    // URL共有データの構造に合わせて確実に代入
+    templateName = data.templateName || data.template || '無題のお題';
+    authorName = data.authorName || data.author || '';
     
     localStorage.setItem('kanji-dojo-template-name', templateName);
     localStorage.setItem('kanji-dojo-author-name', authorName);
 
-    document.getElementById('input-template-name').value = templateName;
-    document.getElementById('input-author-name').value = authorName;
-    document.getElementById('start-template-name').textContent = templateName;
+    // 設定画面の入力フォームの中に文字をセット
+    const inputT = document.getElementById('input-template-name');
+    const inputA = document.getElementById('input-author-name');
+    if (inputT) inputT.value = templateName;
+    if (inputA) inputA.value = authorName;
+
+    // ホーム画面のテキストに反映
+    if (document.getElementById('start-template-name')) {
+      document.getElementById('start-template-name').textContent = templateName;
+    }
 
     const startAuthorLabel = document.getElementById('start-author-name');
     if (startAuthorLabel) {
-      if (authorName) {
+      if (authorName && authorName !== '未設定' && authorName !== '') {
         startAuthorLabel.textContent = authorName;
         if (startAuthorLabel.parentElement) startAuthorLabel.parentElement.style.display = 'inline';
       } else {
+        startAuthorLabel.textContent = '未設定';
         if (startAuthorLabel.parentElement) startAuthorLabel.parentElement.style.display = 'none';
       }
     }
 
-    // 💡【最重要修正】これまでの描画順序を入れ替えます
-    // ① 先にHTMLのお題リスト（kanji-list）を構築して、ブラウザ側に全データが存在することを確定させます
     renderKanjiList();
-    
-    // ② リストが完全に構築されたあとで、満を持してホーム画面の問題数カウントを実行します
-    // これにより、ログイン直後（1画面目）でも46問といった正しい数字が確実に100%流し込まれます！
     updateHomeCount();
 
     // URLのパラメータを消してスッキリさせる
-    window.history.replaceState({}, document.title, window.location.pathname);
+    if (window.location.search) {
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
   }
 
 window.getFirebaseDataById = async function(roomId) {
@@ -1263,6 +1297,25 @@ window.getFirebaseDataById = async function(roomId) {
     const dbRef = ref(db);
     const snapshot = await get(child(dbRef, `shared_rooms/${roomId}`));
     return snapshot.exists() ? snapshot.val() : null;
+  };
+
+  window.uploadGameDataOnEnd = async function(tName, aName, qList) {
+    try {
+      const roomsRef = ref(db, 'shared_rooms');
+      const newRoomRef = push(roomsRef);
+      const roomId = newRoomRef.key; // サーバー側で発行された一意のID
+
+      await set(newRoomRef, {
+        templateName: tName || '無題のお題',
+        authorName: aName || '',
+        kanji: qList
+      });
+      
+      return roomId; // 保存完了後、IDを確実に返す
+    } catch (err) {
+      console.error("Firebaseへの自動バックアップに失敗しました:", err);
+      return '';
+    }
   };
 
   window.firebaseCheckURLParam();
@@ -1405,6 +1458,7 @@ let currentValidOptions = [];
 let currentDisplayOption = '';
 let hintShown = false;
 let currentUploadedImageBase64 = ''; 
+let currentCloudId = '';
 
 let questionStartTime = 0;
 let timeRecords = [];
@@ -1496,7 +1550,18 @@ function playSE(seFunction) {
 
 // ========== UTILS ==========
 function saveKanjiList() {
-  localStorage.setItem('kanji-dojo-list', JSON.stringify(kanjiList));
+  try {
+    // ✨【超・軽量化】メモリ上（kanjiList）には高画質画像を残したまま、
+    // ブラウザに保存する時だけ画像を「EXTERNAL_IMAGE」に置き換えてダイエットさせます！
+    const cleanList = kanjiList.map(item => ({
+      kanji: item.kanji,
+      reading: item.reading,
+      image: (item.image && item.image.startsWith('data:image')) ? "EXTERNAL_IMAGE" : item.image
+    }));
+    localStorage.setItem('kanji-dojo-list', JSON.stringify(cleanList));
+  } catch (e) {
+    console.warn("保存エラー:", e);
+  }
 }
 
 function showScreen(id) {
@@ -1843,7 +1908,8 @@ function advanceQuestion() {
   }
 }
 
-async function endGame(isEscaped = false) { // 💡 頭に async をつけます
+async function endGame(isEscaped = false) {
+  // ─── ✨【外部サイト・ID連携版：履歴の自動保存処理】───
   try {
     const now = new Date();
     const dateStr = `${now.getMonth() + 1}/${now.getDate()} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
@@ -1851,17 +1917,26 @@ async function endGame(isEscaped = false) { // 💡 頭に async をつけます
     const totalQ = (gameQueue && gameQueue.length > 0) ? gameQueue.length : kanjiList.length;
     const sourceList = playedKanjiList && playedKanjiList.length > 0 ? playedKanjiList : kanjiList;
 
-    // 💡 Firebase依存をやめ、ローカルで超軽量圧縮して保存する最強・最速方式に変更！
-    const cleanKanjiList = await Promise.all(sourceList.map(async item => {
-      let miniImage = "";
-      if (item.image) {
-        miniImage = await compressImageToMini(item.image);
+    // 💡 履歴保存の前に、まずはクラウドIDの確定を完全に待ちます
+    const hasImage = sourceList.some(item => item.image && item.image.startsWith('data:image'));
+    
+    if (hasImage && !currentCloudId) {
+      showToast('☁️ クラウドへデータを自動バックアップ中...');
+      // 🎯【修正】モジュール側にデータを渡し、Firebaseへの保存が「完全に完了してIDが返ってくる」のを await で確実に待ちます
+      if (window.uploadGameDataOnEnd) {
+        currentCloudId = await window.uploadGameDataOnEnd(
+          playedTemplateName || templateName,
+          playedAuthorName || authorName,
+          sourceList
+        );
       }
-      return {
-        kanji: item.kanji,
-        reading: item.reading,
-        image: miniImage // 容量を極限まで削ぎ落とした画像を保存
-      };
+    }
+
+    // 履歴用の軽量データを作成
+    const cleanKanjiList = sourceList.map(item => ({
+      kanji: item.kanji,
+      reading: item.reading,
+      image: item.image ? "EXTERNAL_IMAGE" : "" 
     }));
     
     const newRecord = {
@@ -1873,18 +1948,19 @@ async function endGame(isEscaped = false) { // 💡 頭に async をつけます
       totalQuestions: totalQ, 
       timeRecords: [...timeRecords], 
       playedKanjiList: cleanKanjiList, 
+      // 🎯 保存完了が保証されたため、ここには必ず正しいID、または空文字が入ります
+      cloudId: currentCloudId || '',
       date: dateStr
     };
     
     let currentHistory = JSON.parse(localStorage.getItem('typing-play-history') || '[]');
     currentHistory.unshift(newRecord);
     if (currentHistory.length > 50) currentHistory = currentHistory.slice(0, 50);
+    
     localStorage.setItem('typing-play-history', JSON.stringify(currentHistory));
   } catch (e) {
-    console.error("履歴の保存に失敗しました:", e);
+    console.error("履歴の保存失敗:", e);
   }
-
-  // --- 以下は元のまま ---
   clearInterval(timerInterval);
   document.removeEventListener('keydown', onKeyDown);
   isGameRetire = isEscaped; 
@@ -2087,6 +2163,8 @@ function exportJSON() {
   showToast('JSONをエクスポートしました');
 }
 
+// 🔎 既存の function importJSON(event) { ... } の中身を、以下のスマート版に丸ごと上書きします
+
 function importJSON(event) {
   const file = event.target.files[0];
   if (!file) return;
@@ -2097,50 +2175,47 @@ function importJSON(event) {
       const list = data.kanji || data;
       if (!Array.isArray(list)) throw new Error('invalid');
       
+      // 1. 出題リストの登録と保存
       kanjiList = list.filter(item => item.reading && (item.kanji || item.image));
-      saveKanjiList();
+      localStorage.setItem('kanji-dojo-list', JSON.stringify(kanjiList));
       
-      if (data.templateName) {
-        templateName = data.templateName;
-        localStorage.setItem('kanji-dojo-template-name', templateName);
-        
-        const inputField = document.getElementById('input-template-name');
-        const startLabel = document.getElementById('start-template-name');
-        if (inputField) inputField.value = templateName;
-        if (startLabel) startLabel.textContent = templateName;
-      }
+      // 2. 提供していただいたJSONの構造（templateName / authorName）から正確に抽出
+      templateName = data.templateName || data.template || '無題のお題';
+      authorName = data.authorName || data.author || '';
       
+      // 3. ブラウザの記憶（localStorage）へ確実にセーブ
+      localStorage.setItem('kanji-dojo-template-name', templateName);
+      localStorage.setItem('kanji-dojo-author-name', authorName);
+      
+      // 4. 設定画面の入力欄（フォーム）への反映
+      const inputField = document.getElementById('input-template-name');
       const authorField = document.getElementById('input-author-name');
-      const startAuthorLabel = document.getElementById('start-author-name');
-      
-      if (data.authorName && data.authorName !== '未設定') {
-        authorName = data.authorName;
-        localStorage.setItem('kanji-dojo-author-name', authorName);
-        
-        if (startAuthorLabel) {
-          startAuthorLabel.textContent = authorName;
-          if (startAuthorLabel.parentElement) {
-            startAuthorLabel.parentElement.style.display = 'inline';
-          }
-        }
-        if (authorField) authorField.value = authorName;
-      } else {
-        authorName = ''; 
-        localStorage.setItem('kanji-dojo-author-name', '');
-        
-        if (startAuthorLabel) {
-          startAuthorLabel.textContent = '';
-          if (startAuthorLabel.parentElement) {
-            startAuthorLabel.parentElement.style.display = 'none';
-          }
-        }
-        if (authorField) authorField.value = '';
+      if (inputField) inputField.value = templateName;
+      if (authorField) authorField.value = authorName;
+
+      // 5. ホーム画面のタイトル・作者テキストへの即時反映
+      if (document.getElementById('start-template-name')) {
+        document.getElementById('start-template-name').textContent = templateName;
       }
       
+      const startAuthorLabel = document.getElementById('start-author-name');
+      if (startAuthorLabel) {
+        if (authorName && authorName !== '未設定' && authorName !== '') {
+          startAuthorLabel.textContent = authorName;
+          if (startAuthorLabel.parentElement) startAuthorLabel.parentElement.style.display = 'inline';
+        } else {
+          startAuthorLabel.textContent = '未設定';
+          if (startAuthorLabel.parentElement) startAuthorLabel.parentElement.style.display = 'none';
+        }
+      }
+
+      // 6. 画面リストの再描画と、ホーム画面の問題数カウントの完全同期
       renderKanjiList();
       updateHomeCount();
+      
       showToast(`${kanjiList.length}件の設定をインポートしました`);
-    } catch {
+    } catch (err) {
+      console.error(err);
       showToast('JSONの読み込みに失敗しました');
     }
   };
@@ -2590,6 +2665,7 @@ async function actionFromHistory(index, type) {
   const data = historyData[index];
   if (!data) return;
 
+  // 1. 現在のリアルタイムなプレイ状態を安全にバックアップ
   const backup_playedTemplateName = playedTemplateName;
   const backup_playedAuthorName = playedAuthorName;
   const backup_elapsedTime = elapsedTime;
@@ -2600,6 +2676,7 @@ async function actionFromHistory(index, type) {
   const backup_playedKanjiList = playedKanjiList;
   const backup_gameQueue = gameQueue;
 
+  // 2. 履歴から選んだ過去のスタッツを一時的にグローバルに注入
   playedTemplateName = data.template;
   playedAuthorName = data.author;
   elapsedTime = data.score === 'RETIRE' ? 0 : parseFloat(data.score);
@@ -2608,38 +2685,39 @@ async function actionFromHistory(index, type) {
   isGameRetire = data.score === 'RETIRE';
   timeRecords = data.timeRecords || [];
   
-  const isResultScreenActive = document.getElementById('result-screen').classList.contains('active');
+  // 3. リアルタイム判定と外部画像マッピングの最適化
   let finalKanjiList = [];
+  const isResultScreenActive = document.getElementById('result-screen').classList.contains('active');
   
   if (isResultScreenActive && backup_playedKanjiList && backup_playedKanjiList.length > 0 && type === 'image') {
     finalKanjiList = JSON.parse(JSON.stringify(backup_playedKanjiList));
   } else {
-    // 💡 まずは履歴に保存されている「超軽量化（低画質）サムネイル」をベースにリストを作ります
     finalKanjiList = data.playedKanjiList || [];
     
-    // ✨【超重要】もしFirebaseにこのお題のデータがアップロード済みなら、高画質画像を引っ張ってきて上書きします！
-    const hasImageQuestion = finalKanjiList.some(item => item.image && item.image.startsWith('data:image'));
-    if (hasImageQuestion && data.cloudId) {
-      if (type === 'image') showToast('⏳ クラウドから高画質データを読み込み中...');
+    // 外部のFirebaseに画像を取りに行く必要があるかチェック
+    const hasImageQuestion = finalKanjiList.some(item => item.image === "EXTERNAL_IMAGE");
+    if (type === 'image' && hasImageQuestion && data.cloudId) {
+      showToast('⏳ 外部サーバーから高画質画像を読み込み中...');
       try {
-        const snapshot = await window.getFirebaseDataById(data.cloudId);
-        if (snapshot && snapshot.kanji) {
-          finalKanjiList = finalKanjiList.map(item => {
-            if (item.image) {
-              const matchedItem = snapshot.kanji.find(k => 
+        const firebaseData = await window.getFirebaseDataById(data.cloudId);
+        // 🎯【大修正】戻り値は snapshot ではなく snapshot.val()（オブジェクト）そのものなので、
+        // 構造のズレを修正し、firebaseData.kanji が存在するかを正しく判定します
+        if (firebaseData && firebaseData.kanji) {
+          finalKanjiList = await Promise.all(finalKanjiList.map(async item => {
+            if (item.image === "EXTERNAL_IMAGE") {
+              const matchedItem = firebaseData.kanji.find(k => 
                 k.reading === item.reading && 
                 (k.kanji === item.kanji || item.kanji === '（画像問題）' || !k.kanji)
               );
-              // マッチした本物の高画質データ（Base64）があれば、低画質画像とすり替える！
               if (matchedItem && matchedItem.image) {
-                item.image = matchedItem.image; 
+                item.image = matchedItem.image; // クラウド上の最高画質Base64をドッキング！
               }
             }
-            return item;
-          });
+            return item; 
+          }));
         }
       } catch (err) {
-        console.log("Firebaseからの高画質取得に失敗:", err);
+        console.log("Firebaseからの画像取得に失敗:", err);
       }
     }
   }
@@ -2647,7 +2725,7 @@ async function actionFromHistory(index, type) {
   playedKanjiList = finalKanjiList;
   gameQueue = finalKanjiList;
 
-  // 💡 フライング防止機能はそのままに、高画質化されたデータを使って画像を生成します
+  // 4. ブラウザが画像(Image)としての実際の展開・ロードを終えるのを完全に足止めして待つ
   if (type === 'image') {
     if (playedKanjiList && playedKanjiList.length > 0) {
       
@@ -2656,7 +2734,7 @@ async function actionFromHistory(index, type) {
           return new Promise((resolve) => {
             const img = new Image();
             img.onload = () => {
-              item.loadedImageObject = img; 
+              item.loadedImageObject = img; // 組み立て終わったImageオブジェクトを保管
               resolve();
             };
             img.onerror = () => resolve(); 
@@ -2666,6 +2744,7 @@ async function actionFromHistory(index, type) {
         return Promise.resolve(); 
       });
 
+      // すべての問題の画像展開が本当に100%終わった瞬間にCanvas描画をスタート
       Promise.all(imageLoadPromises).then(() => {
         saveResultAsImage(); 
       });
@@ -2677,6 +2756,7 @@ async function actionFromHistory(index, type) {
     shareOnX(); 
   }
 
+  // 5. 元のリアルタイムなプレイ環境へ復元
   setTimeout(() => {
     playedTemplateName = backup_playedTemplateName;
     playedAuthorName = backup_playedAuthorName;
