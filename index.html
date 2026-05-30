@@ -202,8 +202,14 @@
     margin-bottom: 0;
   }
 
-  .kanji-main {
-    font-size: 11rem; 
+.kanji-main {
+    /* 💡【超重要】文字を絶対に改行させず、横一列に固定します */
+    white-space: nowrap; 
+
+    /* 💡【超重要】フォントサイズを「固定の11rem」から「画面の横幅（cqw）に連動するサイズ」に変更します。
+       これにより、文字数が多くなっても、外側の枠の中にピタッと収まるように自動縮小されます */
+    font-size: min(11rem, calc(50cqw / var(--char-count, 1))); 
+    
     font-weight: 800; 
     font-family: 'Noto Serif JP', serif;
     color: var(--paper); 
@@ -211,6 +217,7 @@
     margin: 0.5rem 0;
     display: inline-block;
     letter-spacing: -0.02em; 
+    transition: font-size 0.15s ease; /* サイズ変化を少し滑らかに */
   }
   .kanji-main.correct-flash { color: var(--correct); }
   .kanji-main.wrong-flash { color: var(--wrong); }
@@ -358,7 +365,7 @@
     align-items: flex-start;
     justify-content: center;
   }
-  .result-kanji-item .r-kanji {
+.result-kanji-item .r-kanji {
     font-weight: 700;
     color: var(--paper);
     text-align: left;
@@ -366,7 +373,7 @@
     max-width: 100%;
     overflow: hidden;
     text-overflow: ellipsis;
-    white-space: nowrap;
+    white-space: nowrap; /* 💡 ここも念のため改行禁止にしておきます */
   }
   .result-kanji-item .r-image {
     max-height: 55px; 
@@ -659,7 +666,7 @@
     </div>
     
     <div style="position: absolute; right: 28px; bottom: 68px; font-size: 0.7rem; color: var(--mist); font-family: 'Share Tech Mono', monospace; opacity: 0.6; pointer-events: none; letter-spacing: 0.05em;">
-      v0.0.3
+      v0.0.4
     </div>
 
     <a href="https://x.com/KiyuUre" target="_blank" rel="noopener noreferrer" class="home-x-link" title="Xを開く">
@@ -1466,12 +1473,16 @@ function loadQuestion(idx) {
     img.className = 'stage-image';
     img.id = 'stage-target-element';
     stageArea.appendChild(img);
-  } else {
+} else {
     stageArea.style.minHeight = '160px'; 
     const span = document.createElement('span');
     span.className = 'kanji-main';
     span.id = 'stage-target-element';
     span.textContent = item.kanji;
+    
+    // ✨【ここを追加】表示する文字数を数えて、CSSの変数（--char-count）にセットします
+    span.style.setProperty('--char-count', item.kanji.length);
+    
     stageArea.appendChild(span);
   }
   
