@@ -342,10 +342,12 @@
     color: var(--paper);
     line-height: 1;
   }
-  .score-unit {
-    font-size: 1.2rem;
-    color: var(--mist);
-  }
+.score-unit {
+  font-size: 1.2rem;
+  color: var(--mist);
+  /* 数字に対して少しだけ上に位置を微調整する場合は margin を使います */
+  margin-bottom: 0.2rem; 
+}
   .result-stats {
     display: flex;
     gap: 1.5rem;
@@ -715,6 +717,7 @@
     font-size: 0.85rem;
     gap: 15px;
     width: 100%;
+  position: relative;
   }
   .history-item-left {
     text-align: left;
@@ -786,6 +789,62 @@
     width: 15px;
     height: 15px;
   }
+  .history-item {
+  position: relative; /* ×ボタンを右上固定にするための基準 */
+}
+
+/* 削除ボタンを右上に絶対配置 */
+.history-delete-btn {
+  position: absolute;
+  /* topとrightをマイナスにすることで、枠の右上角から少し外側に飛び出させます */
+  top: -8px; 
+  right: -8px;
+  width: 24px;
+  height: 24px;
+  
+  /* 白色デザインとドロップシャドウ */
+  background: #ffffff;
+  color: var(--paper);
+  border: none; /* 枠線なし */
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15); /* 影で浮かせる */
+  
+  border-radius: 50%;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: all 0.2s ease;
+  z-index: 10;
+}
+
+.history-delete-btn:hover {
+  background: #f5f5f7;
+  transform: scale(1.1); /* ホバー時に少し大きくしてクリックしやすく */
+}
+
+/* 作者名用のスタイル */
+.history-item-author {
+  font-size: 0.8rem;
+  color: var(--mist);
+  font-weight: normal;
+  margin-left: 8px;
+  vertical-align: middle;
+}
+
+/* タイトル部分の調整 */
+.history-item-title {
+  font-family: 'Noto Serif JP', serif;
+  font-weight: 700;
+  color: var(--paper);
+  font-size: 0.95rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: flex;       /* タイトルと作者を並べるためにFlex化 */
+  align-items: center; /* 垂直中央揃え */
+}
 </style>
 </head>
 <body>
@@ -855,10 +914,12 @@
 
   <div id="result-screen" class="screen">
     <div class="result-title">結果</div>
-    <div>
-      <div class="score-big" id="result-score">0.0</div>
-      <div class="score-unit">秒</div>
-    </div>
+<div>
+  <div style="display: flex; align-items: baseline; justify-content: center; gap: 4px;">
+    <div class="score-big" id="result-score">0.0</div>
+    <div class="score-unit">秒</div>
+  </div>
+</div>
     <div class="sep" style="margin:0 auto;"></div>
 
     <div class="result-stats">
@@ -953,8 +1014,15 @@
 <div class="btn-group">
       <button class="btn btn-secondary" onclick="showScreen('home-screen')">← ホームへ戻る</button>
     </div>
-  </div> <div id="history-screen" class="screen" style="padding-top: 4rem !important; margin-bottom: auto !important;">
-    <div class="settings-title">プレイ履歴</div>
+  </div> 
+
+<div id="history-screen" class="screen" style="padding-top: 4rem !important; margin-bottom: auto !important;">
+  <div class="settings-title">プレイ履歴</div>
+  
+  <!-- 📊【正しい位置に新規追加】現在の履歴件数を表示するエリア -->
+  <div id="history-count" style="text-align: right; color: var(--mist); font-size: 0.85rem; margin-top: 10px; margin-bottom: 5px; width: 100%; max-width: 800px; font-weight: 500;">
+    履歴件数: <span id="current-history-count" style="font-weight: bold; color: var(--paper);">0</span> / 50 件
+  </div>
     
     <div class="card" style="margin-top: 1rem; background: var(--ink-light); max-height: 450px; overflow-y: auto; padding: 1rem;">
       <div id="history-log-list" style="display: flex; flex-direction: column; gap: 0.5rem;">
@@ -972,12 +1040,13 @@
       <button class="btn btn-secondary" onclick="showScreen('home-screen')">← ホームへ戻る</button>
     </div>
   </div>
+</div>
   </div> <div id="toast"></div>
 
 <script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-app.js";
-  import { getDatabase, ref, push, get, child } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-database.js";
-
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-app.js";
+  // 🎯【修正】中身に「set」を追加して、データベースへの書き込み命令を使えるようにします
+  import { getDatabase, ref, push, set, get, child } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-database.js";
   // たつひこさんのFirebaseプロジェクト設定値
   const firebaseConfig = {
     apiKey: "AIzaSyB3iLV7yh9AqkBbem61ExC10lmwLawBUF4",
@@ -993,85 +1062,41 @@
   const db = getDatabase(app);
 
   // グローバル関数として登録し、HTML側から呼び出せるようにドッキング
-window.firebaseCopyShareURL = async function(isSilent = false) { // 💡 引数 isSilent を追加
+window.firebaseCopyShareURL = async function(isSilent = false) {
     if (kanjiList.length === 0) {
-      if (!isSilent) showToast('共有するお題が登録されていません');
-      return null;
+      showToast('⚠️ 出題リストが空です');
+      return;
     }
-
-    // 1. まずは「文字だけ（従来方式）」でURLを作ってみる
+    if (!isSilent) showToast('🔗 共有URLを発行中...');
+    
     try {
-      const dataObject = {
-        templateName: templateName,
-        authorName: authorName,
-        kanji: kanjiList
-      };
-      const jsonStr = JSON.stringify(dataObject);
-      const uint8 = new TextEncoder().encode(jsonStr);
-      let binString = "";
-      for (let i = 0; i < uint8.length; i++) {
-        binString += String.fromCharCode(uint8[i]);
-      }
-      const base64Data = btoa(binString);
-      const safeBase64 = base64Data.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-      
-      const textShareURL = window.location.origin + window.location.pathname + '?data=' + safeBase64;
-
-      if (textShareURL.length <= 1000) {
-        if (!isSilent) {
-          await navigator.clipboard.writeText(textShareURL);
-          showToast('🔗 共有URLをコピーしました');
-        }
-        return textShareURL; // 💡 作成したURLを返す
-      }
-    } catch (e) {
-      console.log("通常URL化スキップ（画像ありのためクラウドへ移行）");
-    }
-
-    // 2. 1万文字を超える場合（画像データが含まれる場合）は自動でクラウドに切り替え
-    const shareBtn = document.getElementById('btn-cloud-share');
-    if (shareBtn && !isSilent) {
-      shareBtn.disabled = true;
-      shareBtn.textContent = '⏳ 保存中...';
-    }
-
-    try {
-      const dataObject = {
-        templateName: templateName,
-        authorName: authorName,
-        kanji: kanjiList
-      };
-
-const roomsRef = ref(db, 'shared_rooms');
+      const roomsRef = ref(db, 'shared_rooms');
       const newRoomRef = push(roomsRef);
       const roomId = newRoomRef.key;
-      
-      // 💡【追加】発行したIDを記憶しておきます！
-      currentCloudId = roomId; 
 
-      await new Promise((resolve, reject) => {
-        import("https://www.gstatic.com/firebasejs/10.10.0/firebase-database.js").then(module => {
-          module.set(newRoomRef, dataObject).then(resolve).catch(reject);
-        });
+      // 🎯 手動共有時も、送信直前にすべての画像をバックグラウンドで超軽量化！
+      const compressedKanjiList = await Promise.all(kanjiList.map(async item => {
+        if (item.image && item.image.startsWith('data:image')) {
+          const compressedImg = await compressImageForCloud(item.image);
+          return { ...item, image: compressedImg };
+        }
+        return item;
+      }));
+
+      await set(newRoomRef, {
+        templateName: templateName || '無題のお題',
+        authorName: authorName || '',
+        kanji: compressedKanjiList
       });
 
-      const cloudShareURL = window.location.origin + window.location.pathname + '?id=' + roomId;
-
-      if (!isSilent) {
-        await navigator.clipboard.writeText(cloudShareURL);
-        showToast('🔗 共有URLをコピーしました');
-      }
-      return cloudShareURL; // 💡 作成したURLを返す
-
+      const shareURL = `${window.location.origin}${window.location.pathname}?id=${roomId}`;
+      await navigator.clipboard.writeText(shareURL);
+      if (!isSilent) showToast('📋 共有URLをクリップボードにコピーしました！');
+      return shareURL;
     } catch (err) {
       console.error("Firebase共有エラー:", err);
-      if (!isSilent) alert('保存に失敗しました。');
-      return null;
-    } finally {
-      if (shareBtn) {
-        shareBtn.disabled = false;
-        shareBtn.textContent = 'URLで共有';
-      }
+      if (!isSilent) showToast('⚠️ 共有URLの発行に失敗しました');
+      return '';
     }
   };
 
@@ -1223,22 +1248,21 @@ window.firebaseCheckURLParam = async function() {
       return;
     }
 
-    // 🎯【たつひこさんのアイデア適用】
-    // URLに何もない（普通にアクセスした）場合、最新の履歴からクラウドIDを探して復元します！
-    const historyData = JSON.parse(localStorage.getItem('typing-play-history') || '[]');
-    if (historyData.length > 0 && historyData[0].cloudId) {
-      const latestCloudId = historyData[0].cloudId;
-      
-      // メモリ上のデータに "EXTERNAL_IMAGE" が含まれているか（復元が必要か）チェック
-      const needsRestore = kanjiList.some(item => item.image === "EXTERNAL_IMAGE");
-      
-      if (needsRestore) {
+const historyData = JSON.parse(localStorage.getItem('typing-play-history') || '[]');
+    
+    // 💡【最重要判定】現在メモリ（またはローカル保存）にあるデータが、画像迷子（EXTERNAL_IMAGE）になっているかチェック
+    const isImageMissingError = kanjiList.some(item => item.image === "EXTERNAL_IMAGE");
+
+    if (isImageMissingError) {
+      // 🚨【エラー状態のとき】
+      if (historyData.length > 0 && historyData[0].cloudId) {
+        // ① 履歴が残っていれば、今まで通りクラウドから高画質データをダウンロードして救済する
         showToast('⏳ クラウドから前回のデータを復元中...');
         try {
-          const snapshot = await window.getFirebaseDataById(latestCloudId);
+          const snapshot = await window.getFirebaseDataById(historyData[0].cloudId);
           if (snapshot && snapshot.kanji) {
-            currentCloudId = latestCloudId;
-            kanjiList = snapshot.kanji; // メモリに高画質データを完全復活！
+            currentCloudId = historyData[0].cloudId;
+            kanjiList = snapshot.kanji; 
             saveKanjiList();
             applyImportedData(snapshot);
             showToast('✨ 前回のデータを復元しました');
@@ -1246,9 +1270,39 @@ window.firebaseCheckURLParam = async function() {
         } catch (err) {
           console.log("履歴からの復元エラー:", err);
         }
+      } else {
+        // ② 🎯【たつひこさんの指定条件】履歴すらなく、画像も復元できない「完全なエラー状態」の時だけ、安全にサイトを初期化する
+        kanjiList = []; 
+        templateName = '無題のお題';
+        authorName = '';
+        currentCloudId = '';
+
+        localStorage.removeItem('kanji-dojo-list');
+        localStorage.setItem('kanji-dojo-template-name', templateName);
+        localStorage.setItem('kanji-dojo-author-name', authorName);
+
+        document.getElementById('start-template-name').textContent = templateName;
+        const startAuthorLabel = document.getElementById('start-author-name');
+        if (startAuthorLabel && startAuthorLabel.parentElement) {
+          startAuthorLabel.textContent = '未設定';
+          startAuthorLabel.parentElement.style.display = 'none';
+        }
+        
+        const inputT = document.getElementById('input-template-name');
+        const inputA = document.getElementById('input-author-name');
+        if (inputT) inputT.value = templateName;
+        if (inputA) inputA.value = authorName;
+
+        renderKanjiList();
+        updateHomeCount();
+        
+        showToast('🧹 復元不可能なデータを検出したため、初期状態にリセットしました');
       }
+    } else {
+      // ✅【正常なとき】履歴がなくても、メモリにお題（本物の画像や文字）が残っているなら、リセットせずそのまま保持！
+      console.log("データは正常に保持されています。");
     }
-  };
+  }; // 👈 window.firebaseCheckURLParam の閉じカッコです
 
   // UI反映用共通ヘルパー関数
 function applyImportedData(data) {
@@ -1299,24 +1353,71 @@ window.getFirebaseDataById = async function(roomId) {
     return snapshot.exists() ? snapshot.val() : null;
   };
 
-  window.uploadGameDataOnEnd = async function(tName, aName, qList) {
+window.uploadGameDataOnEnd = async function(tName, aName, qList) {
     try {
       const roomsRef = ref(db, 'shared_rooms');
       const newRoomRef = push(roomsRef);
-      const roomId = newRoomRef.key; // サーバー側で発行された一意のID
+      const roomId = newRoomRef.key;
 
+      // 🎯【超重要】送信直前に、リスト内のすべての画像をバックグラウンドで超軽量化！
+      const compressedKanjiList = await Promise.all(qList.map(async item => {
+        if (item.image && item.image.startsWith('data:image')) {
+          const compressedImg = await compressImageForCloud(item.image);
+          return { ...item, image: compressedImg };
+        }
+        return item;
+      }));
+
+      // 圧縮し終わったサクサクのデータを送信
       await set(newRoomRef, {
         templateName: tName || '無題のお題',
         authorName: aName || '',
-        kanji: qList
+        kanji: compressedKanjiList
       });
       
-      return roomId; // 保存完了後、IDを確実に返す
+      return roomId;
     } catch (err) {
       console.error("Firebaseへの自動バックアップに失敗しました:", err);
       return '';
     }
   };
+
+function compressImageForCloud(base64Str) {
+    return new Promise((resolve) => {
+      if (!base64Str || !base64Str.startsWith('data:image')) {
+        resolve(base64Str);
+        return;
+      }
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+        const max_size = 400; // 🎯 縦横の最大サイズを400pxに制限（スマホ表示なら十分高画質）
+
+        if (width > height) {
+          if (width > max_size) {
+            height *= max_size / width;
+            width = max_size;
+          }
+        } else {
+          if (height > max_size) {
+            width *= max_size / height;
+            height = max_size;
+          }
+        }
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        
+        // 🎯 高圧縮なJPEG形式に変換（画質は60%に落として容量を極限まで削る）
+        resolve(canvas.toDataURL('image/jpeg', 0.6));
+      };
+      img.onerror = () => resolve(base64Str);
+      img.src = base64Str;
+    });
+  }
 
   window.firebaseCheckURLParam();
 </script>
@@ -1459,6 +1560,7 @@ let currentDisplayOption = '';
 let hintShown = false;
 let currentUploadedImageBase64 = ''; 
 let currentCloudId = '';
+let lastResultData = null;
 
 let questionStartTime = 0;
 let timeRecords = [];
@@ -1466,6 +1568,8 @@ let isGameRetire = false;
 let isSoundOn = true;
 let missCount = 0; 
 let isFirstKeyStroke = true;
+
+let currentActionHistoryData = null;
 
 
 // ✨【新規追加】ページを読み込んだ瞬間に、記憶していた名前を各画面の文字や入力欄にカチッとハメ込む自動処理
@@ -1676,6 +1780,11 @@ function handleImageUpload(event) {
 
 // ========== GAME LOGIC ==========
 function startGame() {
+  // 💡 ここに追記：新しいゲームを始める時は、履歴ツイート用のデータを空にします
+  currentActionHistoryData = null;
+  lastResultData = null;
+  
+
   if (kanjiList.length === 0) {
     showScreen('settings-screen');
     showToast('先にお題を登録してください');
@@ -1969,10 +2078,12 @@ async function endGame(isEscaped = false) {
   document.getElementById('res-penalty').textContent = penaltySeconds;
   document.getElementById('res-miss-count').textContent = missCount;
 
-  const scoreBig = document.getElementById('result-score');
+const scoreBig = document.getElementById('result-score');
   const scoreUnit = document.querySelector('.score-unit');
+  
   if (isEscaped) {
-    scoreBig.textContent = 'リタイア';
+    // 💡 「リタイア」から「RETIRE」に変更
+    scoreBig.textContent = 'RETIRE'; 
     if (scoreUnit) scoreUnit.style.display = 'none'; 
     showToast('ゲームを中断しました');
   } else {
@@ -2024,6 +2135,15 @@ async function endGame(isEscaped = false) {
     div.appendChild(readingSpan);
     listContainer.appendChild(div);
   });
+lastResultData = {
+    template: playedTemplateName || templateName,
+    author: playedAuthorName || authorName,
+    score: isGameRetire ? 'RETIRE' : elapsedTime.toFixed(1),
+    miss: missCount,
+    totalQuestions: gameQueue.length,
+    timeRecords: timeRecords
+  };
+
   showScreen('result-screen');
 }
 
@@ -2371,7 +2491,7 @@ ctx.fillStyle = '#1d1d1f';
     openPreviewModal(canvas);
   }
 
-  playedKanjiList.forEach((item, index) => {
+playedKanjiList.forEach((item, index) => {
     const col = index % cols;
     const row = Math.floor(index / cols);
     const itemX = startX + col * (colWidth + gapX);
@@ -2382,69 +2502,52 @@ ctx.fillStyle = '#1d1d1f';
     ctx.roundRect(itemX, itemY, colWidth, rowHeight, 8);
     ctx.fill();
 
+    // 💡 全て共通で「垂直中央」を基準にする設定を先に記述
+    ctx.textBaseline = 'middle'; 
     ctx.textAlign = 'left';
-    ctx.textBaseline = 'middle';
 
-if (item.image) {
-      // 💡 共通の描画処理を1つにまとめたインライン関数
+    if (item.image) {
       const drawThumbnail = function(targetImg) {
         ctx.save();
         const thumbHeight = rowHeight - 20; 
         const maxThumbWidth = colWidth * 0.4; 
         let thumbWidth = thumbHeight * (targetImg.width / targetImg.height);
-        if (thumbWidth > maxThumbWidth) {
-          thumbWidth = maxThumbWidth;
-        }
+        if (thumbWidth > maxThumbWidth) thumbWidth = maxThumbWidth;
 
         ctx.beginPath();
         ctx.roundRect(itemX + 15, itemY + 10, thumbWidth, thumbHeight, 4);
         ctx.clip();
-        
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(itemX + 15, itemY + 10, thumbWidth, thumbHeight);
-        
         ctx.drawImage(targetImg, itemX + 15, itemY + 10, thumbWidth, thumbHeight);
         ctx.restore();
 
+        // 💡 確実に中央揃えにするため、ここで再度 baseline を middle に指定
+        ctx.textBaseline = 'middle'; 
         ctx.fillStyle = '#86868b';
         ctx.font = `${readingFontSize}px -apple-system, sans-serif`;
         ctx.fillText(item.reading, itemX + thumbWidth + 30, itemY + (rowHeight / 2));
         checkProgress();
       };
+      // ...（画像読み込みロジックは既存のまま）
+      if (item.loadedImageObject) { drawThumbnail(item.loadedImageObject); }
+      else { const img = new Image(); img.onload = () => drawThumbnail(img); img.src = item.image; }
 
-      // ✨【超重要】あらかじめ読み込み完了している画像があるなら、即座に描画！
-      if (item.loadedImageObject) {
-        drawThumbnail(item.loadedImageObject);
-      } else {
-        const img = new Image();
-        img.onload = function() {
-          drawThumbnail(img);
-        };
-        img.onerror = checkProgress;
-        img.src = item.image;
-      }
     } else {
       const kanjiText = item.kanji === '（画像問題）' ? '' : item.kanji;
       const readingText = item.reading;
 
+      // 💡 漢字の描画
       ctx.fillStyle = '#1d1d1f';
       ctx.font = `bold ${kanjiFontSize}px "Noto Serif JP", serif`;
-      let currentKanjiSize = kanjiFontSize;
-      while (ctx.measureText(kanjiText).width > (colWidth * 0.5) && currentKanjiSize > 12) {
-        currentKanjiSize--;
-        ctx.font = `bold ${currentKanjiSize}px "Noto Serif JP", serif`;
-      }
+      ctx.textBaseline = 'middle'; // 中央揃え
       ctx.fillText(kanjiText, itemX + 18, itemY + (rowHeight / 2));
       
+      // 💡 読みの描画
       const kanjiWidth = ctx.measureText(kanjiText).width;
       ctx.fillStyle = '#86868b'; 
       ctx.font = `${readingFontSize}px -apple-system, sans-serif`; 
-      let currentReadingSize = readingFontSize;
-      const maxReadingWidth = colWidth - kanjiWidth - 35;
-      while (ctx.measureText(readingText).width > maxReadingWidth && currentReadingSize > 10) {
-        currentReadingSize--;
-        ctx.font = `${currentReadingSize}px -apple-system, sans-serif`;
-      }
+      ctx.textBaseline = 'middle'; // 中央揃え
       ctx.fillText(readingText, itemX + 18 + kanjiWidth + 12, itemY + (rowHeight / 2));
       checkProgress();
     }
@@ -2535,50 +2638,36 @@ async function copyResultImageToClipboard() {
 
 // 🔎 JavaScriptの末尾（scriptタグが閉じる前）に、この復活用の shareOnX 関数を貼り付けます
 
-async function shareOnX() {
-  // 1. 𝕏に引き渡す実績テキストを自動組み立て
-  const totalCount = gameQueue.length;
+async function shareOnX(historyData = null) {
+  // 💡 ここで確実に「今の状況」または「履歴の状態」を取得
+  const data = getUnifiedResultData(historyData);
+  
+  // 💡 文字列として「リタイア」や「RETIRE」が含まれていればリタイアと判定
+  const isRetire = (data.score === 'RETIRE' || data.score === 'リタイア');
+  
+  let titleText = (data.author && data.author !== '未設定') ? `${data.author}さんの「${data.template}」` : `「${data.template}」`;
+  
   let text = '';
-  
-  let titleText = '';
-  if (playedAuthorName && playedAuthorName !== '未設定' && playedAuthorName !== '') {
-    titleText = `${playedAuthorName}さんの「${playedTemplateName}」`;
-  } else {
-    titleText = `「${playedTemplateName}」`;
-  }
-  
-  if (isGameRetire) {
+  if (isRetire) {
     text = `${titleText} に挑戦しましたが、途中でリタイアしました。`;
   } else {
-    const scoreTime = elapsedTime.toFixed(1);
+    text = `${titleText} の全${data.totalQuestions}問をクリアしました。所要時間は【${data.score}秒】です。\nミスタイプ数は${data.miss}回でした。`;
     
-    let slowestText = 'なし';
-    if (timeRecords.length > 0) {
-      const slowest = timeRecords.reduce((max, item) => item.time > max.time ? item : max, timeRecords[0]);
-      slowestText = `「${slowest.kanji}」の ${slowest.time.toFixed(1)}秒`;
+    // 最も時間がかかった問題の処理
+    if (data.timeRecords && data.timeRecords.length > 0) {
+      const slowest = data.timeRecords.reduce((max, item) => item.time > max.time ? item : max, data.timeRecords[0]);
+      text += `\n最も時間がかかったお題は「${slowest.kanji}」の ${slowest.time.toFixed(1)}秒 です。`;
     }
-    
-    text = `${titleText} の全${totalCount}問をクリアしました。所要時間は【${scoreTime}秒】です。\nミスタイプ数は${missCount}回、最も入力に時間がかかったお題は、${slowestText}でした。`;
   }
 
-  // 2. このゲーム（お題セット）の共有用FirebaseURLを自動生成して文末に付与
+  // 以下URL共有・X投稿処理
   let gameShareUrl = '';
   if (typeof window.firebaseCopyShareURL === 'function') {
-    // 引数に true を渡すことで、クリップボードへの重複コピー（トースト）を防ぎURLだけを取得します
-    const generatedUrl = await window.firebaseCopyShareURL(true);
-    if (generatedUrl) {
-      gameShareUrl = generatedUrl;
-    }
+    gameShareUrl = await window.firebaseCopyShareURL(true);
   }
+  if (gameShareUrl) text += `\n\n👇このお題でタイピングに挑戦！\n${gameShareUrl}`;
 
-  if (gameShareUrl) {
-    text += `\n\n👇このお題でタイピングに挑戦！\n${gameShareUrl}`;
-  }
-
-  const hashtags = 'みんなのタイピング';
-
-  // 3. 組み立てたテキストとハッシュタグを込めて𝕏の投稿画面を開く
-  const shareUrl = `https://x.com/intent/tweet?text=${encodeURIComponent(text)}&hashtags=${encodeURIComponent(hashtags)}`;
+  const shareUrl = `https://x.com/intent/tweet?text=${encodeURIComponent(text)}&hashtags=${encodeURIComponent('みんなのタイピング')}`;
   window.open(shareUrl, '_blank');
 }
 
@@ -2601,55 +2690,59 @@ window.addEventListener('keydown', function(e) {
 }, true); // ← 「true」にすることで、ゲーム側のタイピング判定よりも先にこのEscチェックを実行させます
 
 function renderHistoryList() {
-  const container = document.getElementById('history-log-list');
+  const container = document.getElementById('history-log-list'); // IDを確認してください
   if (!container) return;
-  
-  container.innerHTML = '';
+
   const historyData = JSON.parse(localStorage.getItem('typing-play-history') || '[]');
-  
+  container.innerHTML = '';
+
+  const currentCountEl = document.getElementById('current-history-count');
+  if (currentCountEl) currentCountEl.textContent = historyData.length;
+
   if (historyData.length === 0) {
     container.innerHTML = '<div class="empty-state">プレイ履歴がまだありません</div>';
     return;
   }
-  
-  historyData.forEach((item, index) => {
+
+historyData.forEach((item, index) => {
     const div = document.createElement('div');
     div.className = 'history-item';
     
     const isRetire = item.score === 'RETIRE';
-    const scoreHTML = isRetire 
-      ? `<span class="history-item-score retire">RETIRE</span>`
-      : `<span class="history-item-score">${item.score}<span style="font-size:0.65rem; color:var(--mist); margin-left:1px;">秒</span></span>`;
+    const scoreClass = isRetire ? 'history-item-score retire' : 'history-item-score';
+    const scoreText = isRetire ? 'RETIRE' : `${item.score}秒`;
     
-    // 統計情報のテキスト組み立て
-    const authorText = item.author ? `（作者: ${item.author}）` : '';
+    // 💡 作者名を span で括り、クラスを適用
+    const authorHTML = (item.author && item.author !== '未設定') ? `<span class="history-item-author">作者: ${item.author}</span>` : '';
+    
     const penaltyText = item.penalty !== undefined ? `${item.penalty}秒` : '0秒';
     const missText = item.miss !== undefined ? `${item.miss}回` : '0回';
     const totalQText = item.totalQuestions !== undefined ? `${item.totalQuestions}問` : '-問';
     
     div.innerHTML = `
+      <button class="history-delete-btn" onclick="deleteHistoryItem(${index}, event)">×</button>
       <div class="history-item-left">
-        <div class="history-item-title">${item.template}${authorText}</div>
+        <div class="history-item-title">${item.template || '無題'}${authorHTML}</div>
         <div class="history-item-meta">
-          ${item.date} ｜ 問題数: ${totalQText} ｜ ミス: ${missText} ｜ ペナ: ${penaltyText}
+          ${item.date} ｜ 問題数: ${totalQText} ｜ ペナルティ: ${penaltyText} ｜ ミス: ${missText}
         </div>
       </div>
-<div class="history-item-right">
-        ${scoreHTML}
-        <button class="history-action-btn" onclick="actionFromHistory(${index}, 'image')" title="この記録の画像を出力">
+      <div class="history-item-right">
+        <div class="${scoreClass}">${scoreText}</div>
+        <button class="history-action-btn" onclick="actionFromHistory(${index}, 'image')" title="画像を出力">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v4"></path>
-            <polyline points="7 10 12 15 17 10"></polyline>
-            <line x1="12" y1="15" x2="12" y2="3"></line>
+            <path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"></path>
+            <line x1="12" y1="15" x2="12" y2="2"></line>
+            <polyline points="16 11 12 15 8 11"></polyline>
           </svg>
         </button>
-        <button class="history-action-btn" onclick="actionFromHistory(${index}, 'x')" style="font-weight: bold; font-family: -apple-system, sans-serif; font-size: 0.8rem;" title="この記録を𝕏で共有">
+        <button class="history-action-btn" onclick="actionFromHistory(${index}, 'x')" title="𝕏で共有" style="font-weight: bold; font-family: -apple-system, sans-serif; font-size: 0.8rem;">
           𝕏
         </button>
-        <button class="history-action-btn" onclick="applyHistoryData(${index})" title="このお題を現在の設定に復元する">
+        <button class="history-action-btn" onclick="applyHistoryData(${index})" title="お題を復元">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="1 4 1 10 7 10"></polyline>
-            <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+            <path d="M23 4v6h-6"></path>
+            <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
           </svg>
         </button>
       </div>
@@ -2658,6 +2751,20 @@ function renderHistoryList() {
   });
 }
 
+// ✨ 通知を出さずに即座に削除する関数
+window.deleteHistoryItem = function(index, event) {
+  if (event) event.stopPropagation();
+  const historyData = JSON.parse(localStorage.getItem('typing-play-history') || '[]');
+  
+  // 削除を実行
+  historyData.splice(index, 1);
+  localStorage.setItem('typing-play-history', JSON.stringify(historyData));
+  
+  // 再描画
+  renderHistoryList();
+  // 通知は出さないので showToast は呼び出しません
+};
+
 // 🔎 既存の actionFromHistory(index, type) 関数を、以下のコードに丸ごと上書きします
 
 async function actionFromHistory(index, type) {
@@ -2665,7 +2772,9 @@ async function actionFromHistory(index, type) {
   const data = historyData[index];
   if (!data) return;
 
-  // 1. 現在のリアルタイムなプレイ状態を安全にバックアップ
+  // 💡【重要】ここが「4」の処理です。どのボタンを押してもこの履歴データを一時保存します
+  currentActionHistoryData = data; 
+
   const backup_playedTemplateName = playedTemplateName;
   const backup_playedAuthorName = playedAuthorName;
   const backup_elapsedTime = elapsedTime;
@@ -2676,7 +2785,6 @@ async function actionFromHistory(index, type) {
   const backup_playedKanjiList = playedKanjiList;
   const backup_gameQueue = gameQueue;
 
-  // 2. 履歴から選んだ過去のスタッツを一時的にグローバルに注入
   playedTemplateName = data.template;
   playedAuthorName = data.author;
   elapsedTime = data.score === 'RETIRE' ? 0 : parseFloat(data.score);
@@ -2685,58 +2793,47 @@ async function actionFromHistory(index, type) {
   isGameRetire = data.score === 'RETIRE';
   timeRecords = data.timeRecords || [];
   
-  // 3. リアルタイム判定と外部画像マッピングの最適化
   let finalKanjiList = [];
-  const isResultScreenActive = document.getElementById('result-screen').classList.contains('active');
   
-  if (isResultScreenActive && backup_playedKanjiList && backup_playedKanjiList.length > 0 && type === 'image') {
-    finalKanjiList = JSON.parse(JSON.stringify(backup_playedKanjiList));
-  } else {
-    finalKanjiList = data.playedKanjiList || [];
-    
-    // 外部のFirebaseに画像を取りに行く必要があるかチェック
-    const hasImageQuestion = finalKanjiList.some(item => item.image === "EXTERNAL_IMAGE");
-    if (type === 'image' && hasImageQuestion && data.cloudId) {
-      showToast('⏳ 外部サーバーから高画質画像を読み込み中...');
-      try {
-        const firebaseData = await window.getFirebaseDataById(data.cloudId);
-        // 🎯【大修正】戻り値は snapshot ではなく snapshot.val()（オブジェクト）そのものなので、
-        // 構造のズレを修正し、firebaseData.kanji が存在するかを正しく判定します
-        if (firebaseData && firebaseData.kanji) {
-          finalKanjiList = await Promise.all(finalKanjiList.map(async item => {
-            if (item.image === "EXTERNAL_IMAGE") {
-              const matchedItem = firebaseData.kanji.find(k => 
-                k.reading === item.reading && 
-                (k.kanji === item.kanji || item.kanji === '（画像問題）' || !k.kanji)
-              );
-              if (matchedItem && matchedItem.image) {
-                item.image = matchedItem.image; // クラウド上の最高画質Base64をドッキング！
-              }
+  // 外部画像の復元処理
+  finalKanjiList = data.playedKanjiList || [];
+  const hasImageQuestion = finalKanjiList.some(item => item.image === "EXTERNAL_IMAGE");
+  
+  if (hasImageQuestion && data.cloudId) {
+    if (type === 'image') showToast('⏳ クラウドから高画質データを読み込み中...');
+    try {
+      const snapshot = await window.getFirebaseDataById(data.cloudId);
+      if (snapshot && snapshot.kanji) {
+        finalKanjiList = finalKanjiList.map(item => {
+          if (item.image === "EXTERNAL_IMAGE") {
+            const matchedItem = snapshot.kanji.find(k => 
+              k.reading === item.reading && 
+              (k.kanji === item.kanji || item.kanji === '（画像問題）' || !k.kanji)
+            );
+            if (matchedItem && matchedItem.image) {
+              item.image = matchedItem.image; 
             }
-            return item; 
-          }));
-        }
-      } catch (err) {
-        console.log("Firebaseからの画像取得に失敗:", err);
+          }
+          return item;
+        });
       }
+    } catch (err) {
+      console.log("Firebaseからの高画質取得に失敗:", err);
     }
   }
 
   playedKanjiList = finalKanjiList;
   gameQueue = finalKanjiList;
 
-  // 4. ブラウザが画像(Image)としての実際の展開・ロードを終えるのを完全に足止めして待つ
-  if (type === 'image') {
+  // ボタンの種類ごとの処理
+if (type === 'image') {
+    lastResultData = data;
     if (playedKanjiList && playedKanjiList.length > 0) {
-      
       const imageLoadPromises = playedKanjiList.map(item => {
         if (item.image && item.image.startsWith('data:image')) {
           return new Promise((resolve) => {
             const img = new Image();
-            img.onload = () => {
-              item.loadedImageObject = img; // 組み立て終わったImageオブジェクトを保管
-              resolve();
-            };
+            img.onload = () => { item.loadedImageObject = img; resolve(); };
             img.onerror = () => resolve(); 
             img.src = item.image;
           });
@@ -2744,19 +2841,19 @@ async function actionFromHistory(index, type) {
         return Promise.resolve(); 
       });
 
-      // すべての問題の画像展開が本当に100%終わった瞬間にCanvas描画をスタート
       Promise.all(imageLoadPromises).then(() => {
         saveResultAsImage(); 
       });
-
     } else {
       showToast('⚠️ この履歴には問題一覧が含まれていません');
     }
-  } else if (type === 'x') {
-    shareOnX(); 
+} else if (type === 'x') {
+    // 💡 履歴ボタンからのツイート時も、ここが最新データになるように同期
+    lastResultData = data; 
+    shareOnX(data);
   }
 
-  // 5. 元のリアルタイムなプレイ環境へ復元
+  // 復元処理
   setTimeout(() => {
     playedTemplateName = backup_playedTemplateName;
     playedAuthorName = backup_playedAuthorName;
@@ -2783,37 +2880,25 @@ function clearPlayHistory() {
 
 async function copyAndTweetFromModal() {
   if (!currentGeneratedCanvas) return;
-  
   showToast('⏳ 画像をコピー中...');
 
-  try {
-    // 1. まずは画像をクリップボードにコピー（非同期処理）
-    currentGeneratedCanvas.toBlob(async function(blob) {
-      if (blob) {
-        try {
-          await navigator.clipboard.write([
-            new ClipboardItem({ "image/png": blob })
-          ]);
-          
-          showToast('✨ コピー完了！𝕏を開きます');
-          
-          // 2. 💡【重要】履歴から呼び出された際のリタイア状態（isGameRetire）が
-          // タイミングのズレで消去されるのを防ぐため、即座に shareOnX() を実行します
-          shareOnX();
-          closePreviewModal(); // ポップアップを閉じる
-
-        } catch (clipErr) {
-          console.error("画像コピーに失敗しました:", clipErr);
-          showToast('⚠️ ブラウザの制限によりコピーに失敗しました');
-          shareOnX();
-        }
+  currentGeneratedCanvas.toBlob(async function(blob) {
+    if (blob) {
+      try {
+        await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
+        showToast('✨ コピー完了！𝕏を開きます');
+        
+        // 💡 履歴ボタンからの操作ならデータが入っているし、
+        // 通常プレイなら currentActionHistoryData は null なので、
+        // ツイート関数は自動で「現在のゲームデータ」を読みに行きます
+        shareOnX(currentActionHistoryData); 
+        closePreviewModal();
+      } catch (e) {
+        shareOnX(currentActionHistoryData);
+        closePreviewModal();
       }
-    }, 'image/png');
-
-  } catch (err) {
-    console.error("処理エラー:", err);
-    shareOnX();
-  }
+    }
+  }, 'image/png');
 }
 
 function compressImageToMini(base64Str) {
@@ -2842,6 +2927,9 @@ function compressImageToMini(base64Str) {
   });
 }
 
+// 🔎 既存の async function applyHistoryData(index) { ... } を、以下のコードに丸ごと上書きします
+
+// ✨ 履歴からお題をサイトに反映（復元）する機能（完全同期・フライング防止版）
 async function applyHistoryData(index) {
   const historyData = JSON.parse(localStorage.getItem('typing-play-history') || '[]');
   const data = historyData[index];
@@ -2850,51 +2938,56 @@ async function applyHistoryData(index) {
   const confirmApply = confirm(`⚠️ この記録のお題「${data.template}」を現在の設定に復元しますか？\n\n※現在設定されているお題はクリアされ、上書きされます。`);
   if (!confirmApply) return;
 
+  // 1. まずは履歴の軽量データを一時的な変数に読み込む
   let finalKanjiList = data.playedKanjiList || [];
   
-  // ✨【超重要】画像が含まれていて、かつクラウドIDがある場合はFirebaseから高画質版を取りに行く
-  const hasImageQuestion = finalKanjiList.some(item => item.image && item.image.startsWith('data:image'));
+  const hasImageQuestion = finalKanjiList.some(item => item.image === "EXTERNAL_IMAGE");
   
+  // 2. クラウドIDがあり、画像復元が必要な場合、Firebaseからのダウンロードを「完全に待つ」
   if (hasImageQuestion && data.cloudId) {
     showToast('⏳ クラウドから高画質画像を復元中...');
     try {
-      const snapshot = await window.getFirebaseDataById(data.cloudId);
-      if (snapshot && snapshot.kanji) {
+      const firebaseData = await window.getFirebaseDataById(data.cloudId);
+      if (firebaseData && firebaseData.kanji) {
+        // マップ処理を使って、"EXTERNAL_IMAGE" を本物の高画質Base64データに完全に置き換える
         finalKanjiList = finalKanjiList.map(item => {
-          if (item.image) {
-            const matchedItem = snapshot.kanji.find(k => 
+          if (item.image === "EXTERNAL_IMAGE") {
+            const matchedItem = firebaseData.kanji.find(k => 
               k.reading === item.reading && 
               (k.kanji === item.kanji || item.kanji === '（画像問題）' || !k.kanji)
             );
             if (matchedItem && matchedItem.image) {
-              item.image = matchedItem.image; // 高画質データにすり替え！
+              item.image = matchedItem.image; // 高画質データにすり替え
             }
           }
           return item;
         });
       }
     } catch (err) {
-      console.log("Firebaseからの画像復元に失敗:", err);
+      console.error("Firebaseからの画像復元に失敗:", err);
       showToast('⚠️ 画像の一部が高画質で復元できませんでした');
     }
   }
 
-  // アプリの現在の状態をすべて過去のデータで上書き
+  // 3. 【最重要】高画質化がすべて完了したデータリストを、満を持してグローバル変数（本番メモリ）に代入
   kanjiList = finalKanjiList;
   templateName = data.template;
   authorName = data.author || '';
 
+  // 4. ブラウザの記憶領域（localStorage）へダイエットした状態で保存
   saveKanjiList();
   localStorage.setItem('kanji-dojo-template-name', templateName);
   localStorage.setItem('kanji-dojo-author-name', authorName);
 
+  // 5. ホーム画面と設定画面のUIに反映
   document.getElementById('start-template-name').textContent = templateName;
   const startAuthorLabel = document.getElementById('start-author-name');
   if (startAuthorLabel) {
-    if (authorName) {
+    if (authorName && authorName !== '未設定') {
       startAuthorLabel.textContent = authorName;
       if (startAuthorLabel.parentElement) startAuthorLabel.parentElement.style.display = 'inline';
     } else {
+      startAuthorLabel.textContent = '未設定';
       if (startAuthorLabel.parentElement) startAuthorLabel.parentElement.style.display = 'none';
     }
   }
@@ -2904,10 +2997,34 @@ async function applyHistoryData(index) {
   if (inputT) inputT.value = templateName;
   if (inputA) inputA.value = authorName;
 
+  // 6. 🎯 すべての画像が本物のデータに置き換わった「後」で、安全にリストを描画し、カウントを更新する
   renderKanjiList();
   updateHomeCount();
 
   showToast(`✨ 「${templateName}」をサイトに復元しました！`);
+}
+
+function getUnifiedResultData(historyData = null) {
+  // 1. 引数でデータが渡されていればそれを最優先（履歴からのツイート）
+  if (historyData) return historyData;
+  
+  // 2. なければ、現在ゲーム終了時に固定保存したデータを使用（通常のプレイ結果）
+  if (lastResultData) return lastResultData;
+  
+  // 3. それもなければ、画面のDOMから強制取得（保険）
+  const scoreEl = document.getElementById('result-score');
+  if (scoreEl) {
+    const scoreText = scoreEl.textContent.trim();
+    return {
+      template: document.getElementById('result-template-title').textContent.replace('テンプレート: ', ''),
+      author: document.getElementById('result-author-title').textContent.replace('作者: ', ''),
+      score: (scoreText.includes('リタイア') || scoreText === 'RETIRE') ? 'RETIRE' : scoreText,
+      miss: document.getElementById('res-miss-count').textContent.replace('回', ''),
+      totalQuestions: document.getElementById('res-total').textContent.replace('問', ''),
+      timeRecords: timeRecords
+    };
+  }
+  return null;
 }
 </script>
 
@@ -2923,13 +3040,13 @@ async function applyHistoryData(index) {
 <div style="display: flex; gap: 40px; justify-content: center; align-items: center; margin-top: 5px;">
       
       <div style="display: flex; flex-direction: column; align-items: center;">
-        <button onclick="triggerCanvasDownload()" title="画像を保存" style="background: #0071e3; color: white; border: none; width: 56px; height: 56px; border-radius: 50%; cursor: pointer; display: flex; justify-content: center; align-items: center; box-shadow: 0 4px 12px rgba(0,113,227,0.3); transition: transform 0.1s;">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v4"></path>
-            <polyline points="7 10 12 15 17 10"></polyline>
-            <line x1="12" y1="15" x2="12" y2="3"></line>
-          </svg>
-        </button>
+<button onclick="triggerCanvasDownload()" title="画像を保存" style="background: #0071e3; color: white; border: none; width: 56px; height: 56px; border-radius: 50%; cursor: pointer; display: flex; justify-content: center; align-items: center; box-shadow: 0 4px 12px rgba(0,113,227,0.3); transition: transform 0.1s;">
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"></path>
+    <line x1="12" y1="15" x2="12" y2="2"></line>
+    <polyline points="16 11 12 15 8 11"></polyline>
+  </svg>
+</button>
         <span style="font-size: 0.75rem; color: #86868b; margin-top: 8px; font-family: -apple-system, sans-serif; font-weight: bold;">端末に保存</span>
       </div>
 
