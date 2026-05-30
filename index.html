@@ -153,7 +153,7 @@
   .menu-card .desc { font-size: 0.75rem; color: var(--mist); margin-top: 0.2rem; }
 
   /* ===== GAME SCREEN ===== */
-  .game-screen {
+.game-screen {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -162,7 +162,7 @@
     height: auto; 
     margin-top: 0;
     margin-bottom: auto;
-    padding: 8vh 20px 2rem 20px;
+    padding: 12vh 20px 2rem 20px; /* 💡 上の余白を 12vh に広げて、上部にゆとりを持たせました */
   }
 
   .game-header {
@@ -188,45 +188,46 @@
   .progress-info strong { color: var(--paper); font-size: 1rem; }
 
   /* Stage display */
-  .kanji-stage {
+.kanji-stage {
     width: 100%;
     text-align: center;
     padding: 0 1rem; 
-    min-height: 120px;
+    height: 280px; /* 💡 380px から 280px に縮小して、タイピング欄との距離を縮めます */
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    justify-content: center; 
     align-items: center;
-    transition: min-height 0.2s ease;
-    margin-top: 2.5rem; 
+    margin-top: 1.5rem; /* 💡 3.5rem から 1.5rem に減らし、タイマーとの隙間を詰めました */
     margin-bottom: 0;
   }
 
 .kanji-main {
-    /* 💡【超重要】文字を絶対に改行させず、横一列に固定します */
     white-space: nowrap; 
-
-    /* 💡【超重要】フォントサイズを「固定の11rem」から「画面の横幅（cqw）に連動するサイズ」に変更します。
-       これにより、文字数が多くなっても、外側の枠の中にピタッと収まるように自動縮小されます */
     font-size: min(11rem, calc(50cqw / var(--char-count, 1))); 
-    
     font-weight: 800; 
     font-family: 'Noto Serif JP', serif;
     color: var(--paper); 
-    line-height: 1.1;
-    margin: 0.5rem 0;
+    line-height: 1.0; /* 💡 1.1 から 1.0 にして、文字のベースラインをすっきりさせます */
+    margin: 0; /* 💡 0.5rem 0 から 0 にして、余白はヒント側の margin で一括制御します */
     display: inline-block;
     letter-spacing: -0.02em; 
-    transition: font-size 0.15s ease; /* サイズ変化を少し滑らかに */
   }
   .kanji-main.correct-flash { color: var(--correct); }
   .kanji-main.wrong-flash { color: var(--wrong); }
 
   /* 出題画像スタイル */
-  .stage-image {
-    max-width: 100%;
-    max-height: 380px; 
+.stage-image {
+    /* 💡【超重要】最大高さ（max-height）ではなく、固定の高さ（height）に指定します。
+       これにより、すべての画像が例外なく同じ縦幅で統一されます */
+    height: 220px; 
+
+    /* 💡 横幅は自動計算にし、画像の縦横比（アスペクト比）が崩れて潰れないようにします */
+    width: auto; 
+    
+    /* 💡 枠内に綺麗に収めるためのセーフティ */
+    max-width: 100%; 
     object-fit: contain;
+    
     border-radius: 6px;
     border: 1px solid #e5e5ea;
     background: #f5f5f7;
@@ -235,21 +236,23 @@
   .stage-image.correct-flash { border-color: var(--correct); transform: scale(1.03); }
   .stage-image.wrong-flash { border-color: var(--wrong); transform: scale(0.97); }
 
-  .reading-hint {
-    font-size: 1.5rem;
+.reading-hint {
+    font-size: 1.3rem; /* 💡 1.5rem から 1.3rem にして少し控えめに */
     color: var(--mist);
     font-weight: 500;
     letter-spacing: 0.1em;
-    min-height: 2.2rem;
-    margin-bottom: 0; 
+    min-height: 2rem;
+    margin-top: 0;
+    margin-bottom: 1.5rem; /* 💡 下に余白を 1.5rem 空けて、下の漢字と離します */
+    opacity: 0; /* 最初は非表示 */
   }
   .reading-hint.visible { opacity: 1; }
 
   /* Typing input display */
-  .typing-area {
+.typing-area {
     width: 100%;
-    padding-bottom: 25vh;
-    margin-top:0.2rem;
+    margin-top: 0; /* 💡 お題にギリギリまで近づけるよう調整 */
+    padding-bottom: 20vh; 
   }
 
   .input-display {
@@ -666,7 +669,7 @@
     </div>
     
     <div style="position: absolute; right: 28px; bottom: 68px; font-size: 0.7rem; color: var(--mist); font-family: 'Share Tech Mono', monospace; opacity: 0.6; pointer-events: none; letter-spacing: 0.05em;">
-      v0.0.4
+      v0.0.5
     </div>
 
     <a href="https://x.com/KiyuUre" target="_blank" rel="noopener noreferrer" class="home-x-link" title="Xを開く">
@@ -1457,7 +1460,7 @@ function loadQuestion(idx) {
   currentValidOptions = kanaToRomajiOptions(item.reading);
   currentDisplayOption = currentValidOptions[0] || item.reading;
   
-  const stageArea = document.getElementById('kanji-stage-area');
+const stageArea = document.getElementById('kanji-stage-area');
   stageArea.innerHTML = ''; 
   
   const hintDiv = document.createElement('div');
@@ -1467,20 +1470,20 @@ function loadQuestion(idx) {
   stageArea.appendChild(hintDiv);
   
   if (item.image) {
-    stageArea.style.minHeight = '400px'; 
+    // 💡【修正】stageArea.style.minHeight の行を削除し、高さをCSSの380pxに固定します
     const img = document.createElement('img');
     img.src = item.image;
     img.className = 'stage-image';
     img.id = 'stage-target-element';
     stageArea.appendChild(img);
-} else {
-    stageArea.style.minHeight = '160px'; 
+  } else {
+    // 💡【修正】ここにあった stageArea.style.minHeight の行も一緒に削除します
     const span = document.createElement('span');
     span.className = 'kanji-main';
     span.id = 'stage-target-element';
     span.textContent = item.kanji;
     
-    // ✨【ここを追加】表示する文字数を数えて、CSSの変数（--char-count）にセットします
+    // 表示する文字数を数えて、CSSの変数（--char-count）にセット
     span.style.setProperty('--char-count', item.kanji.length);
     
     stageArea.appendChild(span);
