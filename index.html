@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>みんなのタイピング - 人ポケコミュ</title>
+<link rel="icon" href="favicon.png" type="image/png">
+<title>みんなのタイピング</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;700;900&family=Noto+Sans+JP:wght@300;400;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 <style>
@@ -605,10 +606,10 @@
     display: none !important;
   }
 
-  .home-x-link {
+.home-x-link {
     position: absolute;
     right: 24px;
-    bottom: 24px;
+    bottom: 20px; /* ✨ バージョン表示と綺麗に並ぶよう位置を微調整 */
     font-size: 1.3rem;
     color: var(--mist); 
     text-decoration: none;
@@ -639,7 +640,7 @@
     <div class="logo-sub">Minnna no Typing</div>
     
     <div style="color: var(--gold-light); margin-bottom: 2rem; font-family: 'Noto Serif JP', serif; text-align: center; line-height: 1.6;">
-      現在の設定：<span id="start-template-name" style="font-weight: bold;">デフォルトのお題</span><br>
+      現在の設定：<span id="start-template-name" style="font-weight: bold;">無題のお題</span><br>
       <span style="font-size: 0.8rem; color: var(--mist);">作者：<span id="start-author-name">未設定</span></span>
     </div>
 
@@ -652,10 +653,15 @@
         <div class="label">設定</div>
         <div class="desc">お題の編集やゲームの設定</div>
       </div>
-    </div>
+</div>
     <div class="btn-group">
       <div id="kanji-count-display" style="color:var(--mist);font-size:0.85rem;margin-top:0.5rem;letter-spacing:0.08em;"></div>
     </div>
+    
+    <div style="position: absolute; right: 28px; bottom: 68px; font-size: 0.7rem; color: var(--mist); font-family: 'Share Tech Mono', monospace; opacity: 0.6; pointer-events: none; letter-spacing: 0.05em;">
+      v1.2.0
+    </div>
+
     <a href="https://x.com/KiyuUre" target="_blank" rel="noopener noreferrer" class="home-x-link" title="Xを開く">
       𝕏
     </a>
@@ -763,12 +769,18 @@
 
     <div id="kanji-list" class="kanji-list" style="margin-top: 1rem;"></div>
 
-    <div class="io-row" style="margin-top: 1rem; flex-wrap: wrap;">
-            <button id="btn-cloud-share" class="btn btn-primary" onclick="copyShareURL()" style="flex:2.5; min-width: 170px; gap: 0.3em; background: #0071e3; color: #ffffff; border: none;">
+<div class="io-row" style="margin-top: 1rem; flex-wrap: wrap;">
+        <button id="btn-cloud-share" class="btn btn-primary" onclick="copyShareURL()" style="flex:2.5; min-width: 170px; gap: 0.3em; background: #0071e3; color: #ffffff; border: none;">
         URLで共有
-      <button class="btn btn-secondary" onclick="exportJSON()" style="flex:1; min-width: 130px;">⬇ JSON出力</button>
+      </button>    
+  <button class="btn btn-secondary" onclick="exportJSON()" style="flex:1; min-width: 130px;">⬇ JSON出力</button>
       <button class="btn btn-secondary" onclick="document.getElementById('file-import').click()" style="flex:1; min-width: 130px;">⬆ JSON入力</button>
       <input type="file" id="file-import" accept=".json" onchange="importJSON(event)">
+    </div>
+
+    <div style="width: 100%; margin-top: 0.5rem;">
+      <button class="btn" onclick="clearAllSettings()" style="width: 100%; color: #ff3b30; border-color: #ff3b30; background: transparent; font-weight: 700;">
+        お題をクリア
       </button>
     </div>
 
@@ -1033,7 +1045,7 @@ window.firebaseCopyShareURL = async function(isSilent = false) {
 
   // UI反映用共通ヘルパー関数
   function applyImportedData(data) {
-    templateName = data.templateName || 'デフォルトのお題';
+    templateName = data.templateName || '無題のお題';
     authorName = data.authorName || '';
     
     localStorage.setItem('kanji-dojo-template-name', templateName);
@@ -1182,7 +1194,7 @@ const DEFAULT_KANJI = [
 
 // ========== STATE ==========
 let kanjiList = JSON.parse(localStorage.getItem('kanji-dojo-list') || JSON.stringify(DEFAULT_KANJI));
-let templateName = 'デフォルトのお題';
+let templateName = '無題のお題';
 let authorName = ''; 
 let playedTemplateName = ''; 
 let playedAuthorName = '';   
@@ -1304,7 +1316,7 @@ function saveTemplateMeta() {
   const nameInput = document.getElementById('input-template-name').value.trim();
   const authorInput = document.getElementById('input-author-name').value.trim();
   
-  templateName = nameInput || 'デフォルトのお題';
+  templateName = nameInput || '無題お題';
   authorName = authorInput || ''; 
   
   localStorage.setItem('kanji-dojo-template-name', templateName);
@@ -1742,6 +1754,40 @@ function deleteKanji(i) {
   showToast(`出題を削除しました`);
 }
 
+function clearAllSettings() {
+  // 💥 確実な意思確認を1回だけ行います
+  const confirmClear = confirm('⚠️ 現在設定されている「テンプレート名」「作者名」および「すべてのお題」を完全に消去します。\n\n本当にクリアしてもよろしいですか？');
+  if (!confirmClear) return;
+
+  // 1. 内部データの初期化
+  templateName = '無題のお題';
+  authorName = '';
+  kanjiList = [];
+
+  // 2. ローカルストレージ（ブラウザ保存分）の削除
+  localStorage.removeItem('kanji-dojo-template-name');
+  localStorage.removeItem('kanji-dojo-author-name');
+  localStorage.removeItem('kanji-dojo-list');
+
+  // 3. 設定画面の入力欄を空っぽにする
+  document.getElementById('input-template-name').value = '';
+  document.getElementById('input-author-name').value = '';
+  
+  // 4. ホーム画面の表示も初期状態に戻す
+  document.getElementById('start-template-name').textContent = templateName;
+  const startAuthorLabel = document.getElementById('start-author-name');
+  if (startAuthorLabel) {
+    startAuthorLabel.textContent = '';
+    if (startAuthorLabel.parentElement) startAuthorLabel.parentElement.style.display = 'none';
+  }
+
+  // 5. お題リストの表示と問題数のカウントをリフレッシュ
+  renderKanjiList();
+  updateHomeCount();
+
+  showToast('設定をすべてクリアしました');
+}
+
 function exportJSON() {
   const dataObject = {
     version: 1,
@@ -1860,7 +1906,7 @@ async function shareOnX() {
 
   // ポストする文章の最後に、生成されたプレイ用URLをドッキング
   if (gameShareUrl) {
-    text += `\n\n👇このお題でタイピングに挑戦！\n${gameShareUrl}`;
+    text += `\n\nこのお題でタイピングに挑戦！\n${gameShareUrl}`;
   }
 
   const hashtags = 'みんなのタイピング';
