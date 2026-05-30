@@ -235,14 +235,14 @@
     letter-spacing: 0.1em;
     min-height: 2.2rem;
     margin-bottom: 0; 
-    margin-top: 1rem;
   }
   .reading-hint.visible { opacity: 1; }
 
   /* Typing input display */
   .typing-area {
     width: 100%;
-    padding-bottom: 20vh;
+    padding-bottom: 25vh;
+    margin-top:0.2rem;
   }
 
   .input-display {
@@ -1194,7 +1194,7 @@ const DEFAULT_KANJI = [
 
 // ========== STATE ==========
 let kanjiList = JSON.parse(localStorage.getItem('kanji-dojo-list') || JSON.stringify(DEFAULT_KANJI));
-let templateName = '無題のお題';
+let templateName = 'デフォルトのお題';
 let authorName = ''; 
 let playedTemplateName = ''; 
 let playedAuthorName = '';   
