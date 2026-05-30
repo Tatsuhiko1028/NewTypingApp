@@ -764,12 +764,11 @@
     <div id="kanji-list" class="kanji-list" style="margin-top: 1rem;"></div>
 
     <div class="io-row" style="margin-top: 1rem; flex-wrap: wrap;">
+            <button id="btn-cloud-share" class="btn btn-primary" onclick="copyShareURL()" style="flex:2.5; min-width: 170px; gap: 0.3em; background: #0071e3; color: #ffffff; border: none;">
+        URLで共有
       <button class="btn btn-secondary" onclick="exportJSON()" style="flex:1; min-width: 130px;">⬇ JSON出力</button>
       <button class="btn btn-secondary" onclick="document.getElementById('file-import').click()" style="flex:1; min-width: 130px;">⬆ JSON入力</button>
       <input type="file" id="file-import" accept=".json" onchange="importJSON(event)">
-      
-      <button id="btn-cloud-share" class="btn btn-primary" onclick="copyShareURL()" style="flex:1.2; min-width: 170px; gap: 0.3em; background: #0071e3; color: #ffffff; border: none;">
-        🔗 URLで共有
       </button>
     </div>
 
@@ -875,16 +874,16 @@ window.firebaseCopyShareURL = async function(isSilent = false) { // 💡 引数 
     } finally {
       if (shareBtn) {
         shareBtn.disabled = false;
-        shareBtn.textContent = '🔗 URLで共有リンクをコピー';
+        shareBtn.textContent = 'URLで共有';
       }
     }
   };
 
   // 📥 【ハイブリッド版】起動時のURL自動チェック・インポートシステム
-window.firebaseCopyShareURL = async function() {
+window.firebaseCopyShareURL = async function(isSilent = false) { 
     if (kanjiList.length === 0) {
-      showToast('共有するお題が登録されていません');
-      return;
+      if (!isSilent) showToast('共有するお題が登録されていません');
+      return null;
     }
 
     // 1. まずは「文字だけ（従来方式）」でURLを作ってみる
@@ -903,13 +902,20 @@ window.firebaseCopyShareURL = async function() {
       const base64Data = btoa(binString);
       const safeBase64 = base64Data.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
       
-      const textShareURL = window.location.origin + window.location.pathname + '?data=' + safeBase64;
+      // 💡 ローカルテスト時の文字数肥大化を防ぐため、本番用のURL構造で長さを計算
+      const targetOrigin = window.location.origin.includes('file://') 
+        ? 'https://tatsuhiko1028.github.io/NewTypingApp' 
+        : window.location.origin;
+        
+      const textShareURL = targetOrigin + window.location.pathname + '?data=' + safeBase64;
 
-      // URLが10,000文字以下ならその場で終了
       if (textShareURL.length <= 10000) {
-        await navigator.clipboard.writeText(textShareURL);
-        showToast('🔗 共有URLをコピーしました'); // ✨ シンプルに修正
-        return; 
+        // ✨【大修正】isSilent（リザルトからの呼び出し）のときは、クリップボードへのコピーを絶対にスキップする！
+        if (!isSilent) {
+          await navigator.clipboard.writeText(textShareURL);
+          showToast('🔗 共有URLをコピーしました');
+        }
+        return textShareURL; 
       }
     } catch (e) {
       console.log("通常URL化スキップ（画像ありのためクラウドへ移行）");
@@ -917,8 +923,10 @@ window.firebaseCopyShareURL = async function() {
 
     // 2. 1万文字を超える場合（画像データが含まれる場合）は自動でクラウドに切り替え
     const shareBtn = document.getElementById('btn-cloud-share');
-    shareBtn.disabled = true;
-    shareBtn.textContent = '⏳ 保存中...'; // ✨ シンプルに修正
+    if (shareBtn && !isSilent) {
+      shareBtn.disabled = true;
+      shareBtn.textContent = '⏳ 保存中...';
+    }
 
     try {
       const dataObject = {
@@ -937,17 +945,28 @@ window.firebaseCopyShareURL = async function() {
         });
       });
 
-      const cloudShareURL = window.location.origin + window.location.pathname + '?id=' + roomId;
+      const targetOrigin = window.location.origin.includes('file://') 
+        ? 'https://tatsuhiko1028.github.io/NewTypingApp' 
+        : window.location.origin;
 
-      await navigator.clipboard.writeText(cloudShareURL);
-      showToast('🔗 共有URLをコピーしました'); // ✨ シンプルに修正
+      const cloudShareURL = targetOrigin + window.location.pathname + '?id=' + roomId;
+
+      // ✨【大修正】クラウド側も同様に、リザルトからの時はコピーをスキップ
+      if (!isSilent) {
+        await navigator.clipboard.writeText(cloudShareURL);
+        showToast('共有URLをコピーしました');
+      }
+      return cloudShareURL; 
 
     } catch (err) {
       console.error("Firebase共有エラー:", err);
-      alert('保存に失敗しました。');
+      if (!isSilent) alert('保存に失敗しました。');
+      return null;
     } finally {
-      shareBtn.disabled = false;
-      shareBtn.textContent = '🔗 URLで共有';
+      if (shareBtn) {
+        shareBtn.disabled = false;
+        shareBtn.textContent = 'URLで共有';
+      }
     }
   };
 
@@ -987,7 +1006,7 @@ window.firebaseCopyShareURL = async function() {
     const roomId = urlParams.get('id');
     if (!roomId) return;
 
-    showToast('⏳ データを読み込み中...'); // ✨ シンプルに修正
+    showToast('データを読み込み中...'); // ✨ シンプルに修正
 
     try {
       const dbRef = ref(db);
