@@ -267,17 +267,21 @@
     padding-bottom: 20vh; 
   }
 
-  .input-display {
+.input-display {
+    display: flex;
+    justify-content: center;
+    align-items: center;
     font-size: 4.5rem;       
     font-weight: 900;       
     font-family: 'SF Pro Display', -apple-system, sans-serif;
     color: #1d1d1f;         
     letter-spacing: 0.08em; 
-    text-align: center;     
     width: 100%;
     margin-top: 0.3rem;   
     height: 4.5rem;          
-    line-height: 1.0;        
+    line-height: 1.0;
+    white-space: nowrap; /* 💡 改行を禁止して1行を維持します */
+    overflow: visible;    /* 💡 はみ出た分を隠してレイアウト崩れを防ぎます */
   }
 
   .char-done {
@@ -372,44 +376,82 @@
     display: none !important;
   }
 
-  .result-kanji-item {
+.result-kanji-item {
     background: #f5f5f7;
-    padding: 0.5rem 0.6rem;
+    padding: 0.4rem 0.6rem 0.4rem 0.8rem;
     border-radius: 4px;
     border-left: 2px solid #1d1d1f;
     display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between; /* タイムを右端に押しやる */
+    gap: 0.5rem;
+    overflow: hidden;
+    min-height: 2.6rem;
+    box-sizing: border-box;
+  }
+  /* 左側（画像・お題・読み）をまとめるグループ */
+  .r-left-group {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 0.6rem;
+    flex: 1;
+    min-width: 0; /* これがないと省略（...）が効きません */
+  }
+  .result-kanji-item.stacked .r-left-group {
     flex-direction: column;
     align-items: flex-start;
     justify-content: center;
+    gap: 0.1rem;
   }
-.result-kanji-item .r-kanji {
+  .r-media {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+  }
+  .r-kanji {
     font-weight: 700;
     color: var(--paper);
-    text-align: left;
-    font-size: 0.9rem;
-    max-width: 100%;
+    font-size: 0.95rem;
+    white-space: nowrap;
     overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap; /* 💡 ここも念のため改行禁止にしておきます */
-  }
-  .result-kanji-item .r-image {
-    max-height: 55px; 
+    text-overflow: ellipsis; /* はみ出たら...にする */
     max-width: 100%;
+    flex-shrink: 0; /* 横並び時はお題を縮めない */
+  }
+  .result-kanji-item.stacked .r-kanji {
+    font-size: 0.9rem;
+    flex-shrink: 1; /* 縦並び時はお題も省略を許可 */
+  }
+  .r-image {
+    max-height: 46px;
+    max-width: 60px;
     object-fit: contain;
     border-radius: 2px;
     border: 1px solid #d2d2d7;
-    margin-bottom: 2px;
   }
-  .result-kanj2-item .r-reading {
+  .r-reading {
     font-size: 0.75rem;
     color: var(--mist);
-    text-align: left;
-    width: 100%;
-    overflow: hidden;
-    text-overflow: ellipsis;
     white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis; /* はみ出たら...にする */
+    max-width: 100%;
+    flex-shrink: 1;
   }
-
+  .r-time {
+    flex-shrink: 0; /* タイムは絶対に縮めない */
+    font-size: 0.7rem;
+    font-family: 'Share Tech Mono', monospace;
+    color: #1d1d1f;
+    font-weight: 700;
+    white-space: nowrap;
+    text-align: right;
+  }
+  .result-kanji-item.wide {
+    grid-column: span 2;
+  }
   /* ===== SETTINGS SCREEN ===== */
   #settings-screen { 
     gap: 1.2rem; 
@@ -883,7 +925,7 @@
     </div>
     
     <div style="position: absolute; right: 28px; bottom: 68px; font-size: 0.7rem; color: var(--mist); font-family: 'Share Tech Mono', monospace; opacity: 0.6; pointer-events: none; letter-spacing: 0.05em;">
-      v0.1.1
+      v0.2.0
     </div>
 
     <a href="https://x.com/KiyuUre" target="_blank" rel="noopener noreferrer" class="home-x-link" title="Xを開く">
@@ -943,7 +985,7 @@
       <div id="result-author-title" style="font-size: 0.8rem; color: var(--mist); border-bottom: 1px solid rgba(0,0,0,0.1); padding-bottom: 0.5rem; margin-bottom: 1rem;">
         作者: 未設定
       </div>
-      <div id="result-kanji-list" style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.8rem; font-size: 0.95rem;"></div>
+      <div id="result-kanji-list" style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.8rem; font-size: 0.95rem; grid-auto-flow: row;"></div>
     </div>
   </div>
 
@@ -1963,6 +2005,7 @@ function onKeyDown(e) {
     const questionDuration = elapsedTime - questionStartTime;
     timeRecords.push({
       kanji: gameQueue[currentIndex].kanji,
+      reading: gameQueue[currentIndex].reading,
       time: questionDuration
     });
     
@@ -2018,20 +2061,18 @@ function advanceQuestion() {
 }
 
 async function endGame(isEscaped = false) {
-  // ─── ✨【外部サイト・ID連携版：履歴の自動保存処理】───
+  // ─── ✨履歴の自動保存処理───
   try {
     const now = new Date();
     const dateStr = `${now.getMonth() + 1}/${now.getDate()} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-    
+
     const totalQ = (gameQueue && gameQueue.length > 0) ? gameQueue.length : kanjiList.length;
     const sourceList = playedKanjiList && playedKanjiList.length > 0 ? playedKanjiList : kanjiList;
 
-    // 💡 履歴保存の前に、まずはクラウドIDの確定を完全に待ちます
     const hasImage = sourceList.some(item => item.image && item.image.startsWith('data:image'));
-    
+
     if (hasImage && !currentCloudId) {
       showToast('☁️ クラウドへデータを自動バックアップ中...');
-      // 🎯【修正】モジュール側にデータを渡し、Firebaseへの保存が「完全に完了してIDが返ってくる」のを await で確実に待ちます
       if (window.uploadGameDataOnEnd) {
         currentCloudId = await window.uploadGameDataOnEnd(
           playedTemplateName || templateName,
@@ -2041,55 +2082,53 @@ async function endGame(isEscaped = false) {
       }
     }
 
-    // 履歴用の軽量データを作成
     const cleanKanjiList = sourceList.map(item => ({
       kanji: item.kanji,
       reading: item.reading,
-      image: item.image ? "EXTERNAL_IMAGE" : "" 
+      image: item.image ? "EXTERNAL_IMAGE" : ""
     }));
-    
+
     const newRecord = {
       template: playedTemplateName || window.templateName || '無題のお題',
-      author: playedAuthorName || window.authorName || '', 
+      author: playedAuthorName || window.authorName || '',
       score: isEscaped ? 'RETIRE' : elapsedTime.toFixed(1),
       miss: missCount,
-      penalty: penaltySeconds, 
-      totalQuestions: totalQ, 
-      timeRecords: [...timeRecords], 
-      playedKanjiList: cleanKanjiList, 
-      // 🎯 保存完了が保証されたため、ここには必ず正しいID、または空文字が入ります
+      penalty: penaltySeconds,
+      totalQuestions: totalQ,
+      timeRecords: [...timeRecords],
+      playedKanjiList: cleanKanjiList,
       cloudId: currentCloudId || '',
       date: dateStr
     };
-    
+
     let currentHistory = JSON.parse(localStorage.getItem('typing-play-history') || '[]');
     currentHistory.unshift(newRecord);
     if (currentHistory.length > 50) currentHistory = currentHistory.slice(0, 50);
-    
+
     localStorage.setItem('typing-play-history', JSON.stringify(currentHistory));
   } catch (e) {
     console.error("履歴の保存失敗:", e);
   }
+
   clearInterval(timerInterval);
   document.removeEventListener('keydown', onKeyDown);
-  isGameRetire = isEscaped; 
+  isGameRetire = isEscaped;
   document.getElementById('progress-bar').style.width = '100%';
   document.getElementById('res-total').textContent = gameQueue.length;
   document.getElementById('res-penalty').textContent = penaltySeconds;
   document.getElementById('res-miss-count').textContent = missCount;
 
-const scoreBig = document.getElementById('result-score');
+  const scoreBig = document.getElementById('result-score');
   const scoreUnit = document.querySelector('.score-unit');
-  
+
   if (isEscaped) {
-    // 💡 「リタイア」から「RETIRE」に変更
-    scoreBig.textContent = 'RETIRE'; 
-    if (scoreUnit) scoreUnit.style.display = 'none'; 
+    scoreBig.textContent = 'RETIRE';
+    if (scoreUnit) scoreUnit.style.display = 'none';
     showToast('ゲームを中断しました');
   } else {
     scoreBig.textContent = elapsedTime.toFixed(1);
-    if (scoreUnit) scoreUnit.style.display = 'inline-block'; 
-    playSE(SE.gameClear); 
+    if (scoreUnit) scoreUnit.style.display = 'inline-block';
+    playSE(SE.gameClear);
   }
 
   document.getElementById('result-template-title').textContent = `テンプレート: ${playedTemplateName}`;
@@ -2097,9 +2136,9 @@ const scoreBig = document.getElementById('result-score');
   if (resAuthorTitle) {
     if (playedAuthorName && playedAuthorName !== '未設定') {
       resAuthorTitle.textContent = `作者: ${playedAuthorName}`;
-      resAuthorTitle.style.display = 'block'; 
+      resAuthorTitle.style.display = 'block';
     } else {
-      resAuthorTitle.style.display = 'none';  
+      resAuthorTitle.style.display = 'none';
     }
   }
 
@@ -2111,31 +2150,72 @@ const scoreBig = document.getElementById('result-score');
     slowestContainer.textContent = 'なし';
   }
 
+  // ==========================================
+  // 👇 HTMLのリスト描画部分（完全に新しくなった安定版）
+  // ==========================================
   const listContainer = document.getElementById('result-kanji-list');
-  listContainer.innerHTML = ''; 
+  listContainer.innerHTML = '';
+  
   playedKanjiList.forEach(item => {
     const div = document.createElement('div');
     div.className = 'result-kanji-item';
+
+    const record = timeRecords.find(r => r.kanji === item.kanji && r.reading === item.reading);
+    const timeLabel = record ? `${record.time.toFixed(1)}秒` : '-';
+
+    // 💡 文字数判定ロジック
+    const kanjiLen = item.kanji === '（画像問題）' ? 0 : item.kanji.length;
+    const readLen = item.reading ? item.reading.length : 0;
+
+    let isStacked = kanjiLen > 6 || readLen > 10 || (kanjiLen + readLen) > 12;
+    let isWide = kanjiLen > 10 || readLen > 18;
+
+    // 💡 画像の場合は絶対に縦並び（改行）させない！
+    // 読みが少し長ければ wide（2マス結合）にして横幅を確保します
     if (item.image) {
-      div.style.minHeight = '85px'; 
+      isStacked = false;
+      isWide = readLen > 12;
+    }
+
+    if (isStacked) div.classList.add('stacked');
+    if (isWide) div.classList.add('wide');
+
+    // 左側グループ（画像/お題 + 読み）
+    const leftGroup = document.createElement('div');
+    leftGroup.className = 'r-left-group';
+
+    if (item.image) {
+      const mediaWrap = document.createElement('div');
+      mediaWrap.className = 'r-media';
       const img = document.createElement('img');
       img.className = 'r-image';
       img.src = item.image;
-      div.appendChild(img);
+      mediaWrap.appendChild(img);
+      leftGroup.appendChild(mediaWrap);
     } else {
-      div.style.minHeight = 'auto'; 
       const kanjiSpan = document.createElement('span');
       kanjiSpan.className = 'r-kanji';
       kanjiSpan.textContent = item.kanji;
-      div.appendChild(kanjiSpan);
+      leftGroup.appendChild(kanjiSpan);
     }
+
     const readingSpan = document.createElement('span');
     readingSpan.className = 'r-reading';
     readingSpan.textContent = item.reading;
-    div.appendChild(readingSpan);
+    leftGroup.appendChild(readingSpan);
+
+    div.appendChild(leftGroup);
+
+    // 右側（タイム）
+    const timeSpan = document.createElement('div');
+    timeSpan.className = 'r-time';
+    timeSpan.textContent = timeLabel;
+    div.appendChild(timeSpan);
+
     listContainer.appendChild(div);
   });
-lastResultData = {
+
+  lastResultData = {
     template: playedTemplateName || templateName,
     author: playedAuthorName || authorName,
     score: isGameRetire ? 'RETIRE' : elapsedTime.toFixed(1),
@@ -2491,26 +2571,102 @@ ctx.fillStyle = '#1d1d1f';
     openPreviewModal(canvas);
   }
 
+// ── Canvas省略ヘルパー ──
+// 指定幅に収まるよう末尾を「…」で切り詰めて返す
+function truncateCanvas(ctx, text, maxW) {
+  if (maxW <= 0) return '';
+  if (ctx.measureText(text).width <= maxW) return text;
+  const ellipsis = '…';
+  const ellW = ctx.measureText(ellipsis).width;
+  if (maxW <= ellW) return ellipsis; 
+  let t = text;
+  while (t.length > 0 && ctx.measureText(t).width + ellW > maxW) {
+    t = t.slice(0, -1);
+  }
+  return t + ellipsis;
+}
+
+// ── ヒューリスティックで wide/stacked 判定 ──
+const canvasWideFlags = [];
+const canvasStackFlags = [];
+for (let i = 0; i < playedKanjiList.length; i++) {
+  const item = playedKanjiList[i];
+  const kanjiLen = item.kanji === '（画像問題）' ? 0 : item.kanji.length;
+  const readLen = item.reading ? item.reading.length : 0;
+  
+  let isStacked = kanjiLen > 6 || readLen > 10 || (kanjiLen + readLen) > 12;
+  let isWide = kanjiLen > 10 || readLen > 18;
+  
+  // 💡 ここも同様に、画像の場合は縦並びフラグをオフにします
+  if (item.image) {
+    isStacked = false; 
+    isWide = readLen > 12; 
+  }
+  canvasStackFlags.push(isStacked);
+  canvasWideFlags.push(isWide);
+}
+
+// ── 描画位置の計算 ──
+const canvasItemPositions = [];
+{
+  const occupied = new Set();
+  const key = (r, c) => r * 1000 + c;
+  let slot = 0;
+  for (let i = 0; i < playedKanjiList.length; i++) {
+    const isWide = canvasWideFlags[i];
+    while (true) {
+      const r = Math.floor(slot / cols);
+      const c = slot % cols;
+      if (occupied.has(key(r, c))) { slot++; continue; }
+      // はみ出す場合は次の行へ送る
+      if (isWide && (c + 1 >= cols || occupied.has(key(r, c + 1)))) { slot++; continue; }
+      
+      occupied.add(key(r, c));
+      if (isWide) occupied.add(key(r, c + 1));
+      
+      const px = startX + c * (colWidth + gapX);
+      const py = startY + r * (rowHeight + gapY);
+      canvasItemPositions.push({ x: px, y: py, w: isWide ? colWidth * 2 + gapX : colWidth });
+      slot++;
+      break;
+    }
+  }
+}
+
 playedKanjiList.forEach((item, index) => {
-    const col = index % cols;
-    const row = Math.floor(index / cols);
-    const itemX = startX + col * (colWidth + gapX);
-    const itemY = startY + row * (rowHeight + gapY);
+    const pos = canvasItemPositions[index] || { x: startX, y: startY, w: colWidth };
+    const itemX = pos.x;
+    const itemY = pos.y;
+    const itemW = pos.w;
+    const isStacked = canvasStackFlags[index];
 
     ctx.fillStyle = '#f5f5f7';
     ctx.beginPath();
-    ctx.roundRect(itemX, itemY, colWidth, rowHeight, 8);
+    ctx.roundRect(itemX, itemY, itemW, rowHeight, 8);
     ctx.fill();
 
-    // 💡 全て共通で「垂直中央」を基準にする設定を先に記述
-    ctx.textBaseline = 'middle'; 
+    // 共通のパディング
+    const paddingLeft = 18;
+    const paddingRight = 24;
+    const innerWidth = itemW - paddingLeft - paddingRight;
+
+    // タイムの幅を計算し、テキスト描画領域から除外する（絶対に被らせない）
+    const rec = timeRecords.find(r => r.kanji === item.kanji && r.reading === item.reading);
+    const timeText = rec ? `${rec.time.toFixed(1)}秒` : '';
+    const timeFontSize = Math.max(10, readingFontSize * 0.82);
+    ctx.font = `bold ${timeFontSize}px "Share Tech Mono", monospace`;
+    const timeWidth = timeText ? ctx.measureText(timeText).width + 12 : 0; 
+
+    const availTextWidth = innerWidth - timeWidth;
+
+    ctx.textBaseline = 'middle';
     ctx.textAlign = 'left';
 
     if (item.image) {
       const drawThumbnail = function(targetImg) {
         ctx.save();
-        const thumbHeight = rowHeight - 20; 
-        const maxThumbWidth = colWidth * 0.4; 
+        const thumbHeight = rowHeight - 20;
+        const maxThumbWidth = itemW * 0.35;
         let thumbWidth = thumbHeight * (targetImg.width / targetImg.height);
         if (thumbWidth > maxThumbWidth) thumbWidth = maxThumbWidth;
 
@@ -2522,14 +2678,25 @@ playedKanjiList.forEach((item, index) => {
         ctx.drawImage(targetImg, itemX + 15, itemY + 10, thumbWidth, thumbHeight);
         ctx.restore();
 
-        // 💡 確実に中央揃えにするため、ここで再度 baseline を middle に指定
-        ctx.textBaseline = 'middle'; 
-        ctx.fillStyle = '#86868b';
+        const readingStartX_img = itemX + 15 + thumbWidth + 12;
+        const readingAvailW_img = itemW - (readingStartX_img - itemX) - paddingRight - timeWidth;
+
         ctx.font = `${readingFontSize}px -apple-system, sans-serif`;
-        ctx.fillText(item.reading, itemX + thumbWidth + 30, itemY + (rowHeight / 2));
+        ctx.fillStyle = '#86868b';
+        ctx.textBaseline = 'middle';
+        
+        ctx.fillText(truncateCanvas(ctx, item.reading, readingAvailW_img), readingStartX_img, itemY + rowHeight / 2);
+
+        if (timeText) {
+          ctx.font = `bold ${timeFontSize}px "Share Tech Mono", monospace`;
+          ctx.fillStyle = '#1d1d1f';
+          ctx.textAlign = 'right';
+          ctx.fillText(timeText, itemX + itemW - paddingRight, itemY + rowHeight / 2);
+          ctx.textAlign = 'left';
+        }
         checkProgress();
       };
-      // ...（画像読み込みロジックは既存のまま）
+      
       if (item.loadedImageObject) { drawThumbnail(item.loadedImageObject); }
       else { const img = new Image(); img.onload = () => drawThumbnail(img); img.src = item.image; }
 
@@ -2537,18 +2704,45 @@ playedKanjiList.forEach((item, index) => {
       const kanjiText = item.kanji === '（画像問題）' ? '' : item.kanji;
       const readingText = item.reading;
 
-      // 💡 漢字の描画
-      ctx.fillStyle = '#1d1d1f';
-      ctx.font = `bold ${kanjiFontSize}px "Noto Serif JP", serif`;
-      ctx.textBaseline = 'middle'; // 中央揃え
-      ctx.fillText(kanjiText, itemX + 18, itemY + (rowHeight / 2));
-      
-      // 💡 読みの描画
-      const kanjiWidth = ctx.measureText(kanjiText).width;
-      ctx.fillStyle = '#86868b'; 
-      ctx.font = `${readingFontSize}px -apple-system, sans-serif`; 
-      ctx.textBaseline = 'middle'; // 中央揃え
-      ctx.fillText(readingText, itemX + 18 + kanjiWidth + 12, itemY + (rowHeight / 2));
+      if (!isStacked) {
+        // 横並びレイアウト
+        const midY = itemY + rowHeight / 2;
+        
+        ctx.font = `bold ${kanjiFontSize}px "Noto Serif JP", serif`;
+        const maxKanjiW = availTextWidth * 0.55; // お題は最大でも利用領域の55%まで
+        const actualKanjiText = truncateCanvas(ctx, kanjiText, maxKanjiW);
+        const actualKanjiW = ctx.measureText(actualKanjiText).width;
+
+        ctx.fillStyle = '#1d1d1f';
+        ctx.fillText(actualKanjiText, itemX + paddingLeft, midY);
+
+        const rAvail = availTextWidth - actualKanjiW - 10;
+        ctx.font = `${readingFontSize}px -apple-system, sans-serif`;
+        ctx.fillStyle = '#86868b';
+        ctx.fillText(truncateCanvas(ctx, readingText, rAvail), itemX + paddingLeft + actualKanjiW + 10, midY);
+
+      } else {
+        // 縦並びレイアウト（お題↑ 読み↓）
+        const topY = itemY + rowHeight * 0.35;
+        const bottomY = itemY + rowHeight * 0.65;
+
+        ctx.fillStyle = '#1d1d1f';
+        ctx.font = `bold ${kanjiFontSize}px "Noto Serif JP", serif`;
+        ctx.fillText(truncateCanvas(ctx, kanjiText, availTextWidth), itemX + paddingLeft, topY);
+
+        ctx.font = `${readingFontSize}px -apple-system, sans-serif`;
+        ctx.fillStyle = '#86868b';
+        ctx.fillText(truncateCanvas(ctx, readingText, availTextWidth), itemX + paddingLeft, bottomY);
+      }
+
+      // タイム（右端・縦中央）
+      if (timeText) {
+        ctx.font = `bold ${timeFontSize}px "Share Tech Mono", monospace`;
+        ctx.fillStyle = '#1d1d1f';
+        ctx.textAlign = 'right';
+        ctx.fillText(timeText, itemX + itemW - paddingRight, itemY + rowHeight / 2);
+        ctx.textAlign = 'left';
+      }
       checkProgress();
     }
   });
