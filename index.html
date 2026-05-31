@@ -1547,11 +1547,13 @@ function buildAllPaths(kana) {
       results.push('xtu' + tail);
       results.push('ltu' + tail);
     }
-  } else if (oneChar === 'ん') {
+} else if (oneChar === 'ん') {
     const tails = buildAllPaths(kana.slice(1));
     for (const tail of tails) {
       results.push('nn' + tail);
-      if (!tail || !/^[aiueony]/.test(tail)) {
+      // 💡 修正：次の文字がある（tailが存在する）場合のみ「n」1回を許可する。
+      // これにより、文末の「ん」は強制的に「nn」でのみ正解となります。
+      if (tail && !/^[aiueony]/.test(tail)) {
         results.push('n' + tail);
       }
     }
