@@ -888,6 +888,9 @@
   align-items: center; /* 垂直中央揃え */
 }
 </style>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
+
 </head>
 <body>
 
@@ -1923,7 +1926,7 @@ const stageArea = document.getElementById('kanji-stage-area');
     stageArea.appendChild(span);
   }
   
-  document.getElementById('progress-current').textContent = idx + 1;
+  document.getElementById('progress-current').textContent = idx;
   document.getElementById('progress-bar').style.width = ((idx / gameQueue.length) * 100) + '%';
   
   renderInputDisplay();
@@ -2084,10 +2087,11 @@ async function endGame(isEscaped = false) {
       }
     }
 
-    const cleanKanjiList = sourceList.map(item => ({
+const cleanKanjiList = sourceList.map(item => ({
       kanji: item.kanji,
       reading: item.reading,
-      image: item.image ? "EXTERNAL_IMAGE" : ""
+      image: item.image ? "EXTERNAL_IMAGE" : "",
+      originalIndex: item.originalIndex // 💡 これを追加！履歴にもIDを記録する
     }));
 
     const newRecord = {
@@ -2162,7 +2166,10 @@ async function endGame(isEscaped = false) {
     const div = document.createElement('div');
     div.className = 'result-kanji-item';
 
-    const record = timeRecords.find(r => r.originalIndex === item.originalIndex);
+    const record = timeRecords.find(r => 
+      (item.originalIndex !== undefined && r.originalIndex === item.originalIndex) ||
+      (item.originalIndex === undefined && r.kanji === item.kanji && r.reading === item.reading)
+    );
     const timeLabel = record ? `${record.time.toFixed(1)}秒` : '-';
 
     // 💡 文字数判定ロジック
@@ -2452,9 +2459,14 @@ function importJSON(event) {
 // 🔎 既存の saveResultAsImage() 関数を、この「秒の右下配置＆サイト名追加版」に丸ごと置き換えます
 let currentGeneratedCanvas = null;
 
-// 🔎 既存の saveResultAsImage() を、以下のポップアップ＆ハッシュタグ版に上書きします
-function saveResultAsImage() {
+async function saveResultAsImage() {
   showToast('🖼️ リザルト画像を生成中...');
+
+  // 💡追加：QRコードにするための共有URLを裏側（通知なし）で取得する
+  let shareUrl = '';
+  if (typeof window.firebaseCopyShareURL === 'function') {
+    shareUrl = await window.firebaseCopyShareURL(true);
+  }
 
   const canvas = document.createElement('canvas');
   canvas.width = 1920;
@@ -2469,12 +2481,38 @@ function saveResultAsImage() {
   ctx.font = 'bold 28px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
   ctx.fillText('TYPING RESULT', 120, 95);
 
-  // ✨【改善1】サイト名の頭に「#」を追加し、細字で上品に描画
-  ctx.fillStyle = '#86868b';
-  ctx.font = '24px "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Segoe UI", sans-serif';
-  ctx.textAlign = 'right';
-  ctx.fillText('#みんなのタイピング', 1800, 95);
-  ctx.textAlign = 'left'; 
+
+// 💡 QRコードを小さくし、サイト名の右横に並べて配置する
+  if (shareUrl && typeof QRious !== 'undefined') {
+const qrSize = 110; 
+    const qrX = 1900 - qrSize; 
+    // 💡 修正：サイズアップに合わせて、文字の高さと中心が合うように上に調整
+    const qrY = 30;
+    
+    const qrCanvas = document.createElement('canvas');
+    new QRious({
+      element: qrCanvas,
+      value: shareUrl,
+      size: qrSize,
+      level: 'M'
+    });
+    
+    ctx.drawImage(qrCanvas, qrX, qrY);
+
+    // サイト名テキストは、QRコードのすぐ左に配置
+    ctx.fillStyle = '#86868b';
+    ctx.font = '24px "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Segoe UI", sans-serif';
+    ctx.textAlign = 'right';
+    ctx.fillText('#みんなのタイピング', qrX - 15, 95);
+    ctx.textAlign = 'left'; 
+  } else {
+    // QRコードが生成できない場合は文字だけ元の右端位置に
+    ctx.fillStyle = '#86868b';
+    ctx.font = '24px "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Segoe UI", sans-serif';
+    ctx.textAlign = 'right';
+    ctx.fillText('#みんなのタイピング', 1800, 95);
+    ctx.textAlign = 'left'; 
+  }
 
   // テンプレート名
   ctx.fillStyle = '#1d1d1f';
@@ -2676,7 +2714,10 @@ playedKanjiList.forEach((item, index) => {
     const innerWidth = itemW - paddingLeft - paddingRight;
 
     // 💡 修正：確実なID（originalIndex）で検索
-    const rec = timeRecords.find(r => r.originalIndex === item.originalIndex);
+    const rec = timeRecords.find(r => 
+      (item.originalIndex !== undefined && r.originalIndex === item.originalIndex) ||
+      (item.originalIndex === undefined && r.kanji === item.kanji && r.reading === item.reading)
+    );
     const timeText = rec ? `${rec.time.toFixed(1)}秒` : '';
     const missText = rec ? `${rec.miss}ミス` : '';
 
