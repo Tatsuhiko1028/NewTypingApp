@@ -935,7 +935,7 @@
     </div>
     
     <div style="position: absolute; right: 28px; bottom: 68px; font-size: 0.7rem; color: var(--mist); font-family: 'Share Tech Mono', monospace; opacity: 0.6; pointer-events: none; letter-spacing: 0.05em;">
-      v0.2.3
+      v0.2.4
     </div>
 
     <a href="https://x.com/KiyuUre" target="_blank" rel="noopener noreferrer" class="home-x-link" title="Xを開く">
@@ -1334,6 +1334,7 @@ const historyData = JSON.parse(localStorage.getItem('typing-play-history') || '[
         localStorage.setItem('kanji-dojo-author-name', authorName);
 
         document.getElementById('start-template-name').textContent = templateName;
+        document.title = 'みんなのタイピング - ' + templateName;
         const startAuthorLabel = document.getElementById('start-author-name');
         if (startAuthorLabel && startAuthorLabel.parentElement) {
           startAuthorLabel.textContent = '未設定';
@@ -1376,6 +1377,7 @@ function applyImportedData(data) {
     // ホーム画面のテキストに反映
     if (document.getElementById('start-template-name')) {
       document.getElementById('start-template-name').textContent = templateName;
+      document.title = 'みんなのタイピング - ' + templateName;
     }
 
     const startAuthorLabel = document.getElementById('start-author-name');
@@ -1633,6 +1635,7 @@ let currentActionHistoryData = null;
 window.addEventListener('DOMContentLoaded', () => {
   // ホーム画面のテキストに反映
   document.getElementById('start-template-name').textContent = templateName;
+  document.title = 'みんなのタイピング - ' + templateName;
   const startAuthorLabel = document.getElementById('start-author-name');
   if (startAuthorLabel) {
     if (authorName) {
@@ -1773,6 +1776,7 @@ function saveTemplateMeta() {
   
   // ホーム画面のテキスト表示を即座に更新
   document.getElementById('start-template-name').textContent = templateName;
+  document.title = 'みんなのタイピング - ' + templateName;
   
   const startAuthorLabel = document.getElementById('start-author-name');
   if (startAuthorLabel) {
@@ -2411,6 +2415,7 @@ function clearAllSettings() {
   
   // 4. ホーム画面の表示も初期状態に戻す
   document.getElementById('start-template-name').textContent = templateName;
+  document.title = 'みんなのタイピング - ' + templateName;
   const startAuthorLabel = document.getElementById('start-author-name');
   if (startAuthorLabel) {
     startAuthorLabel.textContent = '';
@@ -2477,6 +2482,7 @@ function importJSON(event) {
       // 5. ホーム画面のタイトル・作者テキストへの即時反映
       if (document.getElementById('start-template-name')) {
         document.getElementById('start-template-name').textContent = templateName;
+        document.title = 'みんなのタイピング - ' + templateName;
       }
       
       const startAuthorLabel = document.getElementById('start-author-name');
@@ -3325,6 +3331,7 @@ async function applyHistoryData(index) {
 
   // 5. ホーム画面と設定画面のUIに反映
   document.getElementById('start-template-name').textContent = templateName;
+  document.title = 'みんなのタイピング - ' + templateName;
   const startAuthorLabel = document.getElementById('start-author-name');
   if (startAuthorLabel) {
     if (authorName && authorName !== '未設定') {
