@@ -925,7 +925,7 @@
     </div>
     
     <div style="position: absolute; right: 28px; bottom: 68px; font-size: 0.7rem; color: var(--mist); font-family: 'Share Tech Mono', monospace; opacity: 0.6; pointer-events: none; letter-spacing: 0.05em;">
-      v0.2.0
+      v0.2.1
     </div>
 
     <a href="https://x.com/KiyuUre" target="_blank" rel="noopener noreferrer" class="home-x-link" title="Xを開く">
@@ -1609,6 +1609,7 @@ let timeRecords = [];
 let isGameRetire = false; 
 let isSoundOn = true;
 let missCount = 0; 
+let currentQuestionMissCount = 0; // 💡 現在の問題のミス回数
 let isFirstKeyStroke = true;
 
 let currentActionHistoryData = null;
@@ -1839,12 +1840,12 @@ function startGame() {
   
   playedTemplateName = templateName;
   playedAuthorName = authorName; 
-  playedKanjiList = [...kanjiList]; 
+playedKanjiList = kanjiList.map((item, index) => ({ ...item, originalIndex: index }));
   timeRecords = []; 
   missCount = 0; 
   questionStartTime = elapsedTime; 
   
-  let shuffledQueue = shuffle(kanjiList);
+let shuffledQueue = shuffle(playedKanjiList);
   
   if (lastKanji && shuffledQueue.length > 1 && shuffledQueue[0].kanji === lastKanji) {
     const temp = shuffledQueue[0];
@@ -1856,6 +1857,7 @@ function startGame() {
   currentIndex = 0;
   elapsedTime = 0;
   penaltySeconds = 0;
+  currentQuestionMissCount = 0; // 💡 追加：開始時に0にリセット
   
   showScreen('game-screen');
   document.getElementById('progress-total').textContent = gameQueue.length;
@@ -1960,27 +1962,21 @@ function renderInputDisplay() {
 }
 
 function onKeyDown(e) {
-  // 💡 1. まず最優先で「Escキー」が押された時の処理をチェックします
   if (e.key === 'Escape') {
     const modal = document.getElementById('image-preview-modal');
-    
     if (modal && modal.style.display === 'flex') {
-      // プレビュー画像が開いているなら、ポップアップを閉じる（ゲームはそのまま）
       closePreviewModal();
     } else {
-      // プレビューが開いていない（プレイ中など）なら、ゲームをリタイアする
       endGame(true);
     }
-    return; // 💥 Escキーの処理はここで完全に終了（後ろのタイピング判定に行かせない）
+    return;
   }
 
-  // 💡 2. 次に「Enterキー」が押された時（ヒント表示）
   if (e.key === 'Enter') { 
     showHint(); 
     return; 
   }
 
-  // 💡 3. 通常のアルファベットのタイピング判定
   if (e.key.length !== 1) return;
   const ch = e.key.toLowerCase();
   if (!/[a-z]/.test(ch)) return;
@@ -2002,15 +1998,18 @@ function onKeyDown(e) {
     
     playSE(SE.allCorrect); 
     
-    const questionDuration = elapsedTime - questionStartTime;
+const questionDuration = elapsedTime - questionStartTime;
     timeRecords.push({
       kanji: gameQueue[currentIndex].kanji,
       reading: gameQueue[currentIndex].reading,
-      time: questionDuration
+      time: questionDuration,
+      miss: currentQuestionMissCount,
+      originalIndex: gameQueue[currentIndex].originalIndex,
+      usedHint: hintShown // 💡 これを追加！（ヒントを使ったかどうかのフラグ）
     });
     
     questionStartTime = elapsedTime; 
-    
+    currentQuestionMissCount = 0; // 💡追加：次の問題のためにリセット
     advanceQuestion();
     return;
   }
@@ -2026,8 +2025,9 @@ function onKeyDown(e) {
     flashError();
     playSE(SE.keyWrong); 
     missCount++; 
+    currentQuestionMissCount++; // 💡追加：ミス回数をカウント
   }
-} // 💡 onKeyDown 関数の終わり
+}
 
 function flashError() {
   const el = document.getElementById('input-display');
@@ -2160,7 +2160,7 @@ async function endGame(isEscaped = false) {
     const div = document.createElement('div');
     div.className = 'result-kanji-item';
 
-    const record = timeRecords.find(r => r.kanji === item.kanji && r.reading === item.reading);
+    const record = timeRecords.find(r => r.originalIndex === item.originalIndex);
     const timeLabel = record ? `${record.time.toFixed(1)}秒` : '-';
 
     // 💡 文字数判定ロジック
@@ -2207,10 +2207,34 @@ async function endGame(isEscaped = false) {
     div.appendChild(leftGroup);
 
     // 右側（タイム）
-    const timeSpan = document.createElement('div');
+const timeContainer = document.createElement('div');
+    timeContainer.style.display = 'flex';
+    timeContainer.style.flexDirection = 'column';
+    timeContainer.style.alignItems = 'flex-end';
+    timeContainer.style.justifyContent = 'center';
+    timeContainer.style.flexShrink = '0';
+
+const timeSpan = document.createElement('div');
     timeSpan.className = 'r-time';
     timeSpan.textContent = timeLabel;
-    div.appendChild(timeSpan);
+    
+    // 💡 追加：ヒントを使っていたら文字を赤くする
+    if (record && record.usedHint) {
+      timeSpan.style.color = '#ff3b30';
+    }
+
+    const missSpan = document.createElement('div');
+    missSpan.style.fontSize = '0.65rem';
+    missSpan.style.fontFamily = '-apple-system, sans-serif';
+    missSpan.style.fontWeight = 'bold';
+    // ミスが1回以上なら赤色、0回ならグレー
+    missSpan.style.color = (record && record.miss > 0) ? '#ff3b30' : '#86868b';
+    missSpan.style.marginTop = '2px';
+    missSpan.textContent = record ? `${record.miss}ミス` : '-';
+
+    timeContainer.appendChild(timeSpan);
+    timeContainer.appendChild(missSpan);
+    div.appendChild(timeContainer);
 
     listContainer.appendChild(div);
   });
@@ -2645,18 +2669,25 @@ playedKanjiList.forEach((item, index) => {
     ctx.roundRect(itemX, itemY, itemW, rowHeight, 8);
     ctx.fill();
 
-    // 共通のパディング
     const paddingLeft = 18;
     const paddingRight = 24;
     const innerWidth = itemW - paddingLeft - paddingRight;
 
-    // タイムの幅を計算し、テキスト描画領域から除外する（絶対に被らせない）
-    const rec = timeRecords.find(r => r.kanji === item.kanji && r.reading === item.reading);
+    // 💡 修正：確実なID（originalIndex）で検索
+    const rec = timeRecords.find(r => r.originalIndex === item.originalIndex);
     const timeText = rec ? `${rec.time.toFixed(1)}秒` : '';
-    const timeFontSize = Math.max(10, readingFontSize * 0.82);
-    ctx.font = `bold ${timeFontSize}px "Share Tech Mono", monospace`;
-    const timeWidth = timeText ? ctx.measureText(timeText).width + 12 : 0; 
+    const missText = rec ? `${rec.miss}ミス` : '';
 
+    const timeFontSize = Math.max(10, readingFontSize * 0.82);
+    const missFontSize = Math.max(9, timeFontSize * 0.85);
+
+    ctx.font = `bold ${timeFontSize}px "Share Tech Mono", monospace`;
+    const timeTextWidth = timeText ? ctx.measureText(timeText).width : 0;
+
+    ctx.font = `bold ${missFontSize}px -apple-system, sans-serif`;
+    const missTextWidth = missText ? ctx.measureText(missText).width : 0;
+
+    const timeWidth = (timeText || missText) ? Math.max(timeTextWidth, missTextWidth) + 12 : 0;
     const availTextWidth = innerWidth - timeWidth;
 
     ctx.textBaseline = 'middle';
@@ -2684,19 +2715,28 @@ playedKanjiList.forEach((item, index) => {
         ctx.font = `${readingFontSize}px -apple-system, sans-serif`;
         ctx.fillStyle = '#86868b';
         ctx.textBaseline = 'middle';
-        
         ctx.fillText(truncateCanvas(ctx, item.reading, readingAvailW_img), readingStartX_img, itemY + rowHeight / 2);
 
-        if (timeText) {
-          ctx.font = `bold ${timeFontSize}px "Share Tech Mono", monospace`;
-          ctx.fillStyle = '#1d1d1f';
-          ctx.textAlign = 'right';
-          ctx.fillText(timeText, itemX + itemW - paddingRight, itemY + rowHeight / 2);
-          ctx.textAlign = 'left';
-        }
+        // 画像問題のタイムとミス回数
+if (timeText) {
+        ctx.textAlign = 'right';
+        
+        // 秒数の描画
+        ctx.font = `bold ${timeFontSize}px "Share Tech Mono", monospace`;
+        // 💡 修正：ヒントを使った場合は赤色、使っていない場合は黒色にする
+        ctx.fillStyle = (rec && rec.usedHint) ? '#ff3b30' : '#1d1d1f';
+        ctx.fillText(timeText, itemX + itemW - paddingRight, itemY + rowHeight / 2 - 8);
+
+        // ミス回数の描画
+        ctx.font = `bold ${missFontSize}px -apple-system, sans-serif`;
+        ctx.fillStyle = (rec && rec.miss > 0) ? '#ff3b30' : '#86868b';
+        ctx.fillText(missText, itemX + itemW - paddingRight, itemY + rowHeight / 2 + 10);
+
+        ctx.textAlign = 'left';
+      }
         checkProgress();
       };
-      
+
       if (item.loadedImageObject) { drawThumbnail(item.loadedImageObject); }
       else { const img = new Image(); img.onload = () => drawThumbnail(img); img.src = item.image; }
 
@@ -2705,11 +2745,9 @@ playedKanjiList.forEach((item, index) => {
       const readingText = item.reading;
 
       if (!isStacked) {
-        // 横並びレイアウト
         const midY = itemY + rowHeight / 2;
-        
         ctx.font = `bold ${kanjiFontSize}px "Noto Serif JP", serif`;
-        const maxKanjiW = availTextWidth * 0.55; // お題は最大でも利用領域の55%まで
+        const maxKanjiW = availTextWidth * 0.55;
         const actualKanjiText = truncateCanvas(ctx, kanjiText, maxKanjiW);
         const actualKanjiW = ctx.measureText(actualKanjiText).width;
 
@@ -2720,9 +2758,7 @@ playedKanjiList.forEach((item, index) => {
         ctx.font = `${readingFontSize}px -apple-system, sans-serif`;
         ctx.fillStyle = '#86868b';
         ctx.fillText(truncateCanvas(ctx, readingText, rAvail), itemX + paddingLeft + actualKanjiW + 10, midY);
-
       } else {
-        // 縦並びレイアウト（お題↑ 読み↓）
         const topY = itemY + rowHeight * 0.35;
         const bottomY = itemY + rowHeight * 0.65;
 
@@ -2735,12 +2771,21 @@ playedKanjiList.forEach((item, index) => {
         ctx.fillText(truncateCanvas(ctx, readingText, availTextWidth), itemX + paddingLeft, bottomY);
       }
 
-      // タイム（右端・縦中央）
-      if (timeText) {
-        ctx.font = `bold ${timeFontSize}px "Share Tech Mono", monospace`;
-        ctx.fillStyle = '#1d1d1f';
+      // 文字問題のタイムとミス回数（ここが抜けていました！）
+if (timeText) {
         ctx.textAlign = 'right';
-        ctx.fillText(timeText, itemX + itemW - paddingRight, itemY + rowHeight / 2);
+        
+        // 秒数の描画
+        ctx.font = `bold ${timeFontSize}px "Share Tech Mono", monospace`;
+        // 💡 修正：ヒントを使った場合は赤色、使っていない場合は黒色にする
+        ctx.fillStyle = (rec && rec.usedHint) ? '#ff3b30' : '#1d1d1f';
+        ctx.fillText(timeText, itemX + itemW - paddingRight, itemY + rowHeight / 2 - 8);
+
+        // ミス回数の描画
+        ctx.font = `bold ${missFontSize}px -apple-system, sans-serif`;
+        ctx.fillStyle = (rec && rec.miss > 0) ? '#ff3b30' : '#86868b';
+        ctx.fillText(missText, itemX + itemW - paddingRight, itemY + rowHeight / 2 + 10);
+
         ctx.textAlign = 'left';
       }
       checkProgress();
