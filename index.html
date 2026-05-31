@@ -264,7 +264,7 @@
 .typing-area {
     width: 100%;
     margin-top: 0; /* 💡 お題にギリギリまで近づけるよう調整 */
-    padding-bottom: 20vh; 
+    padding-bottom: 30vh; 
   }
 
 .input-display {
@@ -309,11 +309,18 @@
     75% { transform: translateX(4px); }
   }
 
-  .hint-bar {
+.hint-bar {
     margin-top: 0.6rem;
     font-size: 0.75rem;
     color: var(--mist);
     text-align: center;
+    /* 💡 追加：初期状態は透明にして、フワッと表示させる設定 */
+    opacity: 0;
+    transition: opacity 0.5s ease;
+  }
+  /* 💡 追加：このクラスが付いた時に表示される */
+  .hint-bar.visible {
+    opacity: 1;
   }
 
   /* Progress bar */
@@ -928,7 +935,7 @@
     </div>
     
     <div style="position: absolute; right: 28px; bottom: 68px; font-size: 0.7rem; color: var(--mist); font-family: 'Share Tech Mono', monospace; opacity: 0.6; pointer-events: none; letter-spacing: 0.05em;">
-      v0.2.2
+      v0.2.3
     </div>
 
     <a href="https://x.com/KiyuUre" target="_blank" rel="noopener noreferrer" class="home-x-link" title="Xを開く">
@@ -953,7 +960,7 @@
 
     <div class="typing-area">
       <div class="input-display" id="input-display"></div>
-      <div class="hint-bar">Enterキー → 読みを表示（+5秒ペナルティ）</div>
+<div class="hint-bar" id="hint-bar">Enterキー → 読みを表示（+5秒ペナルティ）</div>
     </div>
   </div>
 
@@ -1614,8 +1621,10 @@ let timeRecords = [];
 let isGameRetire = false; 
 let isSoundOn = true;
 let missCount = 0; 
-let currentQuestionMissCount = 0; // 💡 現在の問題のミス回数
 let isFirstKeyStroke = true;
+let currentQuestionMissCount = 0; 
+let lastActiveTime = 0; // 💡 追加：最後に正しい入力があった時間を記録
+let hintTimeout = null; // 💡 修正：独立したヒント監視タイマー
 
 let currentActionHistoryData = null;
 
@@ -1874,6 +1883,21 @@ let shuffledQueue = shuffle(playedKanjiList);
   document.addEventListener('keydown', onKeyDown);
 }
 
+function resetHintTimer() {
+  clearTimeout(hintTimeout);
+  const hintBar = document.getElementById('hint-bar');
+  if (hintBar) hintBar.classList.remove('visible');
+  
+  // 5秒間操作がなければフェードイン
+  if (!hintShown) {
+    hintTimeout = setTimeout(() => {
+      const hb = document.getElementById('hint-bar');
+      if (hb && !hintShown) hb.classList.add('visible');
+    }, 5000);
+  }
+}
+
+// 💡 修正：スコア用のタイマーは元通りのシンプルな形に戻します
 function startTimer() {
   clearInterval(timerInterval);
   timerInterval = setInterval(() => {
@@ -1893,6 +1917,9 @@ function loadQuestion(idx) {
   const item = gameQueue[idx];
   currentTyped = '';
   hintShown = false;
+  
+  // 💡 追加：問題開始時にリセットして、ヒント案内を隠す
+  resetHintTimer();
   
   currentValidOptions = kanaToRomajiOptions(item.reading);
   currentDisplayOption = currentValidOptions[0] || item.reading;
@@ -1978,6 +2005,12 @@ function onKeyDown(e) {
   }
 
   if (e.key === 'Enter') { 
+    // 💡 修正：1文字目より先にヒントを使った場合、ペナルティが反映されるようタイマーを起動！
+    if (isFirstKeyStroke) {
+      isFirstKeyStroke = false;
+      startTimer();
+      questionStartTime = elapsedTime;
+    }
     showHint(); 
     return; 
   }
@@ -1986,16 +2019,19 @@ function onKeyDown(e) {
   const ch = e.key.toLowerCase();
   if (!/[a-z]/.test(ch)) return;
 
-  if (isFirstKeyStroke) {
+  const newTyped = currentTyped + ch;
+  const allOpts = currentValidOptions;
+  
+  const complete = allOpts.find(opt => opt === newTyped);
+  const prefixMatch = allOpts.filter(opt => opt.startsWith(newTyped));
+  const isCorrect = complete || prefixMatch.length > 0;
+
+  if (isFirstKeyStroke && isCorrect) {
     isFirstKeyStroke = false; 
     startTimer();             
     questionStartTime = elapsedTime; 
   }
 
-  const newTyped = currentTyped + ch;
-  const allOpts = currentValidOptions;
-  
-  const complete = allOpts.find(opt => opt === newTyped);
   if (complete) {
     currentTyped = newTyped;
     currentDisplayOption = complete;
@@ -2003,34 +2039,41 @@ function onKeyDown(e) {
     
     playSE(SE.allCorrect); 
     
-const questionDuration = elapsedTime - questionStartTime;
+    // 💡 修正：正解完了！次の問題が出るまでヒントタイマーを一時停止
+    clearTimeout(hintTimeout);
+    const hintBar = document.getElementById('hint-bar');
+    if (hintBar) hintBar.classList.remove('visible');
+    
+    const questionDuration = elapsedTime - (questionStartTime || 0);
     timeRecords.push({
       kanji: gameQueue[currentIndex].kanji,
       reading: gameQueue[currentIndex].reading,
       time: questionDuration,
       miss: currentQuestionMissCount,
       originalIndex: gameQueue[currentIndex].originalIndex,
-      usedHint: hintShown // 💡 これを追加！（ヒントを使ったかどうかのフラグ）
+      usedHint: hintShown 
     });
     
     questionStartTime = elapsedTime; 
-    currentQuestionMissCount = 0; // 💡追加：次の問題のためにリセット
+    currentQuestionMissCount = 0; 
     advanceQuestion();
     return;
   }
   
-  const prefixMatch = allOpts.filter(opt => opt.startsWith(newTyped));
   if (prefixMatch.length > 0) {
     currentTyped = newTyped;
     currentDisplayOption = prefixMatch[0];
     renderInputDisplay();
     
     playSE(SE.keyCorrect); 
+    
+    // 💡 修正：1文字正解！再びここから5秒カウントダウンを開始
+    resetHintTimer();
   } else {
     flashError();
     playSE(SE.keyWrong); 
     missCount++; 
-    currentQuestionMissCount++; // 💡追加：ミス回数をカウント
+    currentQuestionMissCount++; 
   }
 }
 
@@ -2048,6 +2091,11 @@ function showHint() {
   elapsedTime += 5;
   penaltySeconds += 5;
   updateTimerDisplay();
+  
+  // 💡 追加：ヒントを表示したら、案内バー自体はもう不要になるので隠す
+clearTimeout(hintTimeout);
+  const hintBar = document.getElementById('hint-bar');
+  if (hintBar) hintBar.classList.remove('visible');
   
   document.getElementById('reading-hint').textContent = gameQueue[currentIndex].reading;
   document.getElementById('reading-hint').classList.add('visible');
@@ -2969,7 +3017,21 @@ window.addEventListener('keydown', function(e) {
       e.stopPropagation();  // ゲーム側のリタイア処理にキーが渡るのを完全にブロックする
     }
   }
-}, true); // ← 「true」にすることで、ゲーム側のタイピング判定よりも先にこのEscチェックを実行させます
+
+  // 💡 新規追加：スペースキーでゲームを開始する処理
+  if (e.code === 'Space') {
+    const homeScreen = document.getElementById('home-screen');
+    const resultScreen = document.getElementById('result-screen');
+    
+    // ホーム画面、またはリザルト画面が開いている時だけ有効にする
+    if ((homeScreen && homeScreen.classList.contains('active')) || 
+        (resultScreen && resultScreen.classList.contains('active'))) {
+      
+      e.preventDefault(); // 💡 スペースキーによる画面スクロールをブロックする
+      startGame();        // ゲームを開始
+    }
+  }
+}, true); // ← 「true」にすることで、他の判定よりも先にこのチェックを実行させます
 
 function renderHistoryList() {
   const container = document.getElementById('history-log-list'); // IDを確認してください
