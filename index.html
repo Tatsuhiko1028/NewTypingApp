@@ -91,22 +91,18 @@
     background-color: #ffffff;
     color: var(--mist);
     border: 1px solid #d2d2d7;
-    font-family: 'Times New Roman', Times, 'Noto Serif JP', serif; 
+    font-family: 'Times New Roman', 'Noto Serif JP', serif; 
     font-style: normal;
-    font-size: 10px;
-    /* 💡 修正：太字（bold）を解除して通常の太さにしました */
+    font-size: 11px;
     font-weight: normal; 
     text-transform: none;
-    line-height: 16px; 
-    height: 16px;
-    width: 16px;
+    line-height: 16px; /* 💡 確実に縦を中央揃えに */
     cursor: help;
-    margin-left: 6px;
-    position: relative;
-    padding: 0;
-    /* 💡 修正：明朝体の縦の棒が丸の真ん中に来るよう、右に1pxずらしました */
-    padding-left: 1px; 
-    margin-top: 1px; 
+    box-sizing: border-box;
+    padding: 0; /* 💡 余計なズレを生むpaddingを削除 */
+    flex-shrink: 0;    
+    vertical-align: middle;
+    position: relative; 
   }
 
   .info-icon-wrapper:hover .info-tooltip {
@@ -114,14 +110,17 @@
     visibility: visible;
   }
 
+  /* 💡 ツールチップ本体（下に表示して、上の要素に被らないようにする） */
   .info-tooltip {
     position: absolute;
-    top: 140%; /* 💡 修正：見切れないようアイコンの「下」に表示 */
-    left: -10px; /* 少し左寄りに配置 */
-    background-color: #ffffff; /* 白地に変更 */
-    color: var(--paper); /* 黒文字に変更 */
-    border: 1px solid #d2d2d7; /* グレー枠線 */
-    box-shadow: 0 4px 12px rgba(0,0,0,0.08); /* 影をつけて視認性アップ */
+    bottom: 140%; /* 💡 アイコンの「上」に配置 */
+    top: auto;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #ffffff;
+    color: var(--paper);
+    border: 1px solid #d2d2d7;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
     padding: 6px 10px;
     border-radius: 4px;
     font-size: 0.75rem;
@@ -129,37 +128,41 @@
     opacity: 0;
     visibility: hidden;
     transition: opacity 0.2s ease, visibility 0.2s ease;
-    z-index: 100;
+    z-index: 999;
     font-weight: normal;
     text-transform: none;
-    font-style: normal; /* 親の斜体をリセット */
+    font-family: -apple-system, sans-serif;
+    line-height: 1.4;
     letter-spacing: normal;
   }
 
-  /* ツールチップの三角形（グレーの枠線用） */
+  /* 吹き出しの三角形（枠線用：下向き） */
   .info-tooltip::before {
     content: '';
     position: absolute;
-    bottom: 100%;
-    left: 18px;
+    top: 100%; /* ツールチップの下の縁にくっつける */
+    bottom: auto;
+    left: 50%;
     margin-left: -5px;
     border-width: 5px;
     border-style: solid;
-    border-color: transparent transparent #d2d2d7 transparent;
+    border-color: #d2d2d7 transparent transparent transparent; /* 下向きに変更 */
   }
   
-  /* ツールチップの三角形（内側の白） */
+  /* 吹き出しの三角形（内側の白：下向き） */
   .info-tooltip::after {
     content: '';
     position: absolute;
-    bottom: 100%;
-    left: 18px;
+    top: 100%;
+    bottom: auto;
+    left: 50%;
     margin-left: -5px;
-    margin-bottom: -1.5px;
+    margin-top: -1px; /* 枠線を隠すために1px上にずらす */
     border-width: 5px;
     border-style: solid;
-    border-color: transparent transparent #ffffff transparent;
+    border-color: #ffffff transparent transparent transparent; /* 下向きに変更 */
   }
+
 
   /* ===== BUTTONS ===== */
   .btn {
@@ -691,11 +694,15 @@
   .file-label-btn:hover { background: #f5f5f7; color: var(--paper); }
   .file-label-btn.loaded { border-color: var(--correct); color: var(--correct); background: #f1fbf5; }
 
-  .io-row {
+.io-row {
     display: flex;
     gap: 0.5rem;
     width: 100%;
     justify-content: center;
+  }
+  /* 💡 ここから追加：中の4つのボタンを均等に横幅いっぱいに引き伸ばします */
+  .io-row .btn {
+    flex: 1 !important; 
   }
 
   /* ===== TOAST ===== */
@@ -833,13 +840,16 @@
     width: 100%;
     position: relative;
   }
-  .history-item-left {
+.history-item-left {
     text-align: left;
     display: flex;
     flex-direction: column;
     gap: 0.2rem;
     flex: 1;
-    overflow: hidden;
+    /* 💡 修正：hiddenを解除し、ツールチップが上に飛び出せるようにする */
+    overflow: visible !important; 
+    /* 💡 追加：文字の省略(...)を正しく機能させるための設定 */
+    min-width: 0; 
   }
   .history-item-title {
     font-family: 'Noto Serif JP', serif;
@@ -946,18 +956,18 @@
     width: 100%;
     margin-bottom: 0.5rem;
   }
-  .history-best-section-title {
-    font-size: 0.72rem;
-    font-weight: 700;
-    letter-spacing: 0.12em;
-    color: var(--mist);
-    text-transform: uppercase;
-    margin-bottom: 0.4rem;
-    padding-left: 2px;
-    /* 💡 追加：横並びにし、アイコンと縦の中央を揃える */
-    display: flex;
-    align-items: center;
-  }
+.history-best-section-title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--mist);
+  text-transform: uppercase;
+  margin-bottom: 0.4rem;
+  padding-left: 2px;
+  /* 💡 追加：フレックスボックスにして横の i アイコンと縦中央を完全に揃える */
+  display: flex;
+  align-items: center;
+}
   .history-best-card {
     background: #f5f5f7;
     border: 1px solid #e5e5ea;
@@ -970,13 +980,15 @@
     margin-bottom: 0.45rem;
     position: relative;
   }
-  .history-best-left {
+.history-best-left {
     text-align: left;
     display: flex;
     flex-direction: column;
     gap: 0.2rem;
     flex: 1;
-    overflow: hidden;
+    /* 💡 修正：同じく上に飛び出せるようにする */
+    overflow: visible !important; 
+    min-width: 0;
   }
   .history-best-card-top {
     display: flex;
@@ -1215,7 +1227,7 @@
       履歴件数: <span id="current-history-count" style="font-weight: bold; color: var(--paper);">0</span> / 50 件
     </div>
       
-    <div class="card" style="margin-top: 1rem; background: var(--ink-light); max-height: 450px; overflow-y: auto; padding: 1rem;">
+    <div class="card" style="margin-top: 1rem; background: var(--ink-light); padding: 1rem; overflow: visible;">
       <div id="history-log-list" style="display: flex; flex-direction: column; gap: 0.5rem;">
         <div class="empty-state">プレイ履歴がまだありません</div>
       </div>
@@ -2211,12 +2223,30 @@ async function endGame(isEscaped = false) {
     localStorage.setItem('typing-play-history', JSON.stringify(currentHistory));
 
     // 💡 【大修正】通算プレイ回数とベスト記録を独立して加算・更新する
-    function makeFpForSave(item) {
-      const name = item.template || '無題';
+function makeFpForSave(item) {
+      const title = item.template || '無題';
+      const author = item.author || '';
       const list = item.playedKanjiList || [];
-      const count = list.length;
-      const readings = list.map(q => (q.reading || '') + '|' + (q.kanji || '')).sort().join(',');
-      return `${name}::${count}::${readings}`;
+      
+      const details = list.map(q => {
+        const kanji = q.kanji || '';
+        const reading = q.reading || '';
+        // 💡 画像データは非常に長いため、文字数と一部の文字列を抽出して一意性を確保
+        let imgHash = 'no_img';
+        if (q.image) {
+          imgHash = q.image.length + '_' + q.image.substring(0, 20) + '_' + q.image.slice(-20);
+        }
+        return `${kanji}|${reading}|${imgHash}`;
+      }).sort().join('||');
+      
+      const rawStr = `${title}::${author}::${list.length}::${details}`;
+      
+      // 💡 文字列を短いハッシュID（例：id_a1b2c3d4）に変換する軽量アルゴリズム
+      let hash = 5381;
+      for (let i = 0; i < rawStr.length; i++) {
+        hash = ((hash << 5) + hash) + rawStr.charCodeAt(i);
+      }
+      return 'id_' + (hash >>> 0).toString(16);
     }
 
     const currentFp = makeFpForSave(newRecord);
@@ -3060,11 +3090,60 @@ async function saveResultAsImage() {
     }
   });
 
-  ctx.textBaseline = 'alphabetic';
+ctx.textBaseline = 'alphabetic';
 
-  function checkProgress() {
+  // 💡 【追加】右下に目立たないように問題セットのハッシュIDを描画
+  const detailsStr = playedKanjiList.map(q => {
+    const k = q.kanji || '';
+    const r = q.reading || '';
+    let imgH = 'no_img';
+    if (q.image) {
+      imgH = q.image.length + '_' + q.image.substring(0, 20) + '_' + q.image.slice(-20);
+    }
+    return `${k}|${r}|${imgH}`;
+  }).sort().join('||');
+  const rawHashStr = `${playedTemplateName || '無題'}::${playedAuthorName || ''}::${playedKanjiList.length}::${detailsStr}`;
+  let fpHash = 5381;
+  for (let i = 0; i < rawHashStr.length; i++) {
+    fpHash = ((fpHash << 5) + fpHash) + rawHashStr.charCodeAt(i);
+  }
+  const currentHashId = 'id_' + (fpHash >>> 0).toString(16);
+
+  ctx.fillStyle = '#d2d2d7'; // 💡 薄いグレーで目立たなくする
+  ctx.font = '16px "Share Tech Mono", monospace';
+  ctx.textAlign = 'right';
+  ctx.fillText(currentHashId, 1880, 1050); // 右下の隅に配置
+  ctx.textAlign = 'left'; // リセット
+
+function checkProgress() {
     loadedCount++;
     if (loadedCount === totalItems) {
+      // 💡 追加：画像生成の最後にハッシュIDを右下に描き込む
+      const detailsStr = playedKanjiList.map(q => {
+        const k = q.kanji || '';
+        const r = q.reading || '';
+        let imgH = 'no_img';
+        if (q.image) {
+          imgH = q.image.length + '_' + q.image.substring(0, 20) + '_' + q.image.slice(-20);
+        }
+        return `${k}|${r}|${imgH}`;
+      }).sort().join('||');
+      
+      const rawHashStr = `${playedTemplateName || '無題'}::${playedAuthorName || ''}::${playedKanjiList.length}::${detailsStr}`;
+      let fpHash = 5381;
+      for (let i = 0; i < rawHashStr.length; i++) {
+        fpHash = ((fpHash << 5) + fpHash) + rawHashStr.charCodeAt(i);
+      }
+      const currentHashId = 'id_' + (fpHash >>> 0).toString(16);
+
+      // 💡 文字色をはっきりと見えるダークグレーに設定
+      ctx.fillStyle = '#6e6e73';
+      ctx.font = '20px "Share Tech Mono", monospace';
+      ctx.textAlign = 'right';
+      ctx.fillText(currentHashId, 1880, 1050); 
+      ctx.textAlign = 'left';
+
+      // 描画完了後にポップアップを開く
       openPreviewModal(canvas);
     }
   }
@@ -3208,16 +3287,30 @@ function renderHistoryList() {
     return;
   }
 
-// ── 問題セットのフィンガープリントを生成 ──
   function makeFingerprint(item) {
-    const name = item.template || '無題';
+    const title = item.template || '無題';
+    const author = item.author || '';
     const list = item.playedKanjiList || [];
-    const count = list.length;
-    const readings = list.map(q => (q.reading || '') + '|' + (q.kanji || '')).sort().join(',');
-    return `${name}::${count}::${readings}`;
+    
+    const details = list.map(q => {
+      const kanji = q.kanji || '';
+      const reading = q.reading || '';
+      let imgHash = 'no_img';
+      if (q.image) {
+        imgHash = q.image.length + '_' + q.image.substring(0, 20) + '_' + q.image.slice(-20);
+      }
+      return `${kanji}|${reading}|${imgHash}`;
+    }).sort().join('||');
+    
+    const rawStr = `${title}::${author}::${list.length}::${details}`;
+    
+    let hash = 5381;
+    for (let i = 0; i < rawStr.length; i++) {
+      hash = ((hash << 5) + hash) + rawStr.charCodeAt(i);
+    }
+    return 'id_' + (hash >>> 0).toString(16);
   }
 
-  // ── 直近50件の履歴からインデックス（ボタン用）を取得 ──
   const fpMap = {};
   historyData.forEach((item, index) => {
     const fp = makeFingerprint(item);
@@ -3225,63 +3318,63 @@ function renderHistoryList() {
     fpMap[fp].push({ item, index });
   });
 
-  // ── 通算のベスト記録を取得 ──
-  const savedBests = JSON.parse(localStorage.getItem('typing-best-records') || '{}');
-  
-  // 履歴データから、まだ savedBests に登録されていないものを補完（万が一のセーフティ）
-  Object.entries(fpMap).forEach(([fp, entries]) => {
-    if (!savedBests[fp]) {
+  const bestFromHistory = {};
+  Object.entries(fpMap)
+    .filter(([, entries]) => entries.length >= 5)
+    .forEach(([fp, entries]) => {
       const validEntries = entries.filter(e => e.item.score !== 'RETIRE');
-      let bestItem = null;
-      let bestScore = Infinity;
-      if (validEntries.length > 0) {
-        const best = validEntries.reduce((a, b) => parseFloat(a.item.score) <= parseFloat(b.item.score) ? a : b);
-        bestScore = parseFloat(best.item.score);
-        bestItem = best.item;
-      }
-      savedBests[fp] = {
+      if (validEntries.length === 0) return;
+      const best = validEntries.reduce((a, b) =>
+        parseFloat(a.item.score) <= parseFloat(b.item.score) ? a : b
+      );
+      bestFromHistory[fp] = {
         fp,
-        name: entries[0].item.template || '無題',
-        author: entries[0].item.author || '',
-        bestScore: bestScore !== Infinity ? bestScore : 0,
-        bestItem: bestItem,
+        name: best.item.template || '無題',
+        author: best.item.author || '',
+        bestScore: parseFloat(best.item.score),
+        bestIndex: best.index,
+        bestItem: best.item,
         playCount: entries.length,
-        validCount: validEntries.length
+        validCount: validEntries.length,
       };
+    });
+
+  const savedBests = JSON.parse(localStorage.getItem('typing-best-records') || '{}');
+  const mergedBests = { ...savedBests };
+
+  Object.entries(bestFromHistory).forEach(([fp, current]) => {
+    if (!mergedBests[fp] || current.bestScore < mergedBests[fp].bestScore) {
+      mergedBests[fp] = current;
     } else {
-      // 既存の場合、履歴にある回数の方が大きければ上書きする（移行時のためのセーフティ）
-      savedBests[fp].playCount = Math.max(savedBests[fp].playCount, entries.length);
-      const validEntries = entries.filter(e => e.item.score !== 'RETIRE');
-      savedBests[fp].validCount = Math.max(savedBests[fp].validCount, validEntries.length);
+      mergedBests[fp].playCount = Math.max(mergedBests[fp].playCount, current.playCount);
+      mergedBests[fp].validCount = Math.max(mergedBests[fp].validCount, current.validCount);
+      if (current.bestIndex !== undefined) {
+        mergedBests[fp].bestIndex = current.bestIndex;
+        mergedBests[fp].bestItem = current.bestItem;
+      }
     }
   });
 
-  // 最新の状態で再保存
-  localStorage.setItem('typing-best-records', JSON.stringify(savedBests));
-
-  // 💡 【大修正】表示するベスト記録を「通算5回以上プレイし、かつ完走記録がある」ものに絞る
-  // （直近50件の履歴の中に5回分なくても、通算で5回プレイしていれば永遠に表示されます）
-  const bestTargets = Object.values(savedBests)
+  const bestTargets = Object.values(mergedBests)
     .filter(best => best.playCount >= 5 && best.validCount > 0)
     .sort((a, b) => a.bestScore - b.bestScore);
 
-  // ── ベスト記録まとめ枠を描画 ──
+  localStorage.setItem('typing-best-records', JSON.stringify(mergedBests));
+
   if (bestTargets.length > 0) {
     const sectionTitle = document.createElement('div');
     sectionTitle.className = 'history-best-section-title';
-    sectionTitle.innerHTML = '🏆 ベスト記録 <div class="info-icon-wrapper">i<span class="info-tooltip">同じお題セットを5回以上プレイすると記録されます</span></div>';
+    sectionTitle.innerHTML = '🏆 ベスト記録 <div class="info-icon-wrapper" style="margin-left:6px;">i<span class="info-tooltip">同じお題セットを5回以上プレイすると記録されます</span></div>';
     container.appendChild(sectionTitle);
 
-    bestTargets.forEach(({ fp, name, bestScore, bestItem, playCount, validCount }) => {
+    bestTargets.forEach(({ fp, name, bestScore, bestIndex, bestItem, playCount, validCount }) => {
       const card = document.createElement('div');
       card.className = 'history-best-card';
 
-      // 💡 履歴の中にこのベスト記録のデータが残っているか探し、あればそのindexを取得する
-      let bestIndex = undefined;
-      if (fpMap[fp] && bestItem) {
-        // スコアと日付が一致するものをベストの記録実体として見つける
+      let matchedIndex = bestIndex;
+      if (matchedIndex === undefined && fpMap[fp] && bestItem) {
         const match = fpMap[fp].find(e => e.item.score === bestItem.score && e.item.date === bestItem.date);
-        if (match) bestIndex = match.index;
+        if (match) matchedIndex = match.index;
       }
 
       const totalQ = bestItem
@@ -3292,16 +3385,16 @@ function renderHistoryList() {
       const missText = bestItem && bestItem.miss !== undefined ? `${bestItem.miss}回` : '-';
       const dateText = bestItem && bestItem.date ? bestItem.date : '';
 
-      const btnHtml = bestIndex !== undefined ? `
-          <button class="history-action-btn" onclick="actionFromHistory(${bestIndex}, 'image')" title="画像を出力">
+      const btnHtml = matchedIndex !== undefined ? `
+          <button class="history-action-btn" onclick="actionFromHistory(${matchedIndex}, 'image')" title="画像を出力">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"></path>
               <line x1="12" y1="15" x2="12" y2="2"></line>
               <polyline points="16 11 12 15 8 11"></polyline>
             </svg>
           </button>
-          <button class="history-action-btn" onclick="actionFromHistory(${bestIndex}, 'x')" title="𝕏で共有" style="font-weight:bold;font-family:-apple-system,sans-serif;font-size:0.8rem;">𝕏</button>
-          <button class="history-action-btn" onclick="applyHistoryData(${bestIndex})" title="お題を復元">
+          <button class="history-action-btn" onclick="actionFromHistory(${matchedIndex}, 'x')" title="𝕏で共有" style="font-weight:bold;font-family:-apple-system,sans-serif;font-size:0.8rem;">𝕏</button>
+          <button class="history-action-btn" onclick="applyHistoryData(${matchedIndex})" title="お題を復元">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <path d="M23 4v6h-6"></path>
               <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
@@ -3310,12 +3403,14 @@ function renderHistoryList() {
 
       const fpEncoded = btoa(unescape(encodeURIComponent(fp)));
 
+      // 💡 修正：文字（.history-best-name）とアイコンを完全に分けて、見切れを防止
       card.innerHTML = `
         <button class="history-best-delete-btn" onclick="deleteBestRecord('${fpEncoded}', event)" title="このベスト記録を削除">×</button>
         <div class="history-best-left">
-          <div class="history-best-card-top">
-            <div class="history-best-name">${name}</div>
-            <div class="history-best-play-count">${playCount}回プレイ（完走 ${validCount}回）</div>
+          <div class="history-best-card-top" style="display:flex; align-items:center; gap:6px; min-width:0;">
+            <div class="history-best-name" style="flex:0 1 auto; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0;">${name}</div>
+            <div class="info-icon-wrapper" style="margin:0;">i<span class="info-tooltip">ハッシュID: <span style="font-family:'Share Tech Mono',monospace;font-weight:bold;">${fp}</span></span></div>
+            <div class="history-best-play-count" style="margin-left:4px;">${playCount}回プレイ（完走 ${validCount}回）</div>
           </div>
           <div class="history-item-meta">
             ${dateText ? `${dateText} ｜ ` : ''}問題数: ${totalQ}問 ｜ ペナルティ: ${penaltyText} ｜ ミス: ${missText}
@@ -3341,6 +3436,7 @@ function renderHistoryList() {
   }
 
   historyData.forEach((item, index) => {
+    const fp = makeFingerprint(item); 
     const div = document.createElement('div');
     div.className = 'history-item';
 
@@ -3348,18 +3444,24 @@ function renderHistoryList() {
     const scoreClass = isRetire ? 'history-item-score retire' : 'history-item-score';
     const scoreText = isRetire ? 'RETIRE' : `${item.score}秒`;
 
+    // 💡 作者テキストのスタイルも横並びに対応
     const authorHTML = (item.author && item.author !== '未設定')
-      ? `<span class="history-item-author">作者: ${item.author}</span>` : '';
+      ? `<div class="history-item-author" style="flex-shrink:0; margin-left:0;">作者: ${item.author}</div>` : '';
 
     const penaltyText = item.penalty !== undefined ? `${item.penalty}秒` : '0秒';
     const missText = item.miss !== undefined ? `${item.miss}回` : '0回';
     const totalQText = item.totalQuestions !== undefined ? `${item.totalQuestions}問` : '-問';
 
+    // 💡 修正：すべての履歴のタイトルも文字とアイコンを分離して見切れ防止
     div.innerHTML = `
       <button class="history-delete-btn" onclick="deleteHistoryItem(${index}, event)">×</button>
       <div class="history-item-left">
-        <div class="history-item-title">${item.template || '無題'}${authorHTML}</div>
-        <div class="history-item-meta">
+        <div style="display:flex; align-items:center; gap:6px; min-width:0;">
+          <div class="history-item-title" style="flex:0 1 auto; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0;">${item.template || '無題'}</div>
+          ${authorHTML}
+          <div class="info-icon-wrapper" style="margin:0;">i<span class="info-tooltip">ハッシュID: <span style="font-family:'Share Tech Mono',monospace;font-weight:bold;">${fp}</span></span></div>
+        </div>
+        <div class="history-item-meta" style="margin-top:2px;">
           ${item.date} ｜ 問題数: ${totalQText} ｜ ペナルティ: ${penaltyText} ｜ ミス: ${missText}
         </div>
       </div>
