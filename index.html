@@ -96,13 +96,19 @@
     font-size: 11px;
     font-weight: normal; 
     text-transform: none;
-    line-height: 16px; /* 💡 確実に縦を中央揃えに */
+    line-height: 16px; 
     cursor: help;
     box-sizing: border-box;
-    padding: 0; /* 💡 余計なズレを生むpaddingを削除 */
+    padding: 0;
+    
+    /* 💡 ここを 1px から 2px に変更してみてください */
+    padding-left: 2px; 
+    
+    padding-top: 1px;  
     flex-shrink: 0;    
     vertical-align: middle;
     position: relative; 
+    margin-left: 6px;
   }
 
   .info-icon-wrapper:hover .info-tooltip {
@@ -943,12 +949,13 @@
     transform: scale(1.1); 
   }
 
-  .history-item-author {
+.history-item-author {
     font-size: 0.8rem;
     color: var(--mist);
     font-weight: normal;
-    margin-left: 8px;
+    margin-left: 6px;
     vertical-align: middle;
+    flex-shrink: 0;
   }
 
   /* ===== ベスト記録まとめ枠 ===== */
@@ -990,13 +997,14 @@
     overflow: visible !important; 
     min-width: 0;
   }
-  .history-best-card-top {
+.history-best-card-top, .history-item-left .title-row {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 6px;
     min-width: 0;
   }
-  .history-best-name {
+
+.history-best-name, .history-item-title {
     font-family: 'Noto Serif JP', serif;
     font-weight: 700;
     font-size: 0.95rem;
@@ -1004,9 +1012,9 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    min-width: 0;
-    flex-shrink: 1;
+    flex: 0 1 auto;
   }
+  
   .history-best-play-count {
     font-size: 0.72rem;
     color: var(--mist);
@@ -1045,6 +1053,16 @@
     text-transform: uppercase;
     margin: 0.6rem 0 0.4rem 2px;
   }
+
+  .history-hash-id {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.7rem;
+    color: #a1a1a6;
+    margin-left: 8px;
+    letter-spacing: 0;
+    pointer-events: none;
+  }
+
 </style>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
@@ -1428,7 +1446,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.10.0/fireba
       // 🚨【エラー状態のとき】
       if (historyData.length > 0 && historyData[0].cloudId) {
         // ① 履歴が残っていれば、今まで通りクラウドから高画質データをダウンロードして救済する
-        showToast('データを復元中……');
+        showToast('クラウドからデータを復元中……');
         try {
           const snapshot = await window.getFirebaseDataById(historyData[0].cloudId);
           if (snapshot && snapshot.kanji) {
@@ -2246,7 +2264,7 @@ function makeFpForSave(item) {
       for (let i = 0; i < rawStr.length; i++) {
         hash = ((hash << 5) + hash) + rawStr.charCodeAt(i);
       }
-      return 'id_' + (hash >>> 0).toString(16);
+      return (hash >>> 0).toString(16);
     }
 
     const currentFp = makeFpForSave(newRecord);
@@ -3111,7 +3129,7 @@ function checkProgress() {
       for (let i = 0; i < rawHashStr.length; i++) {
         fpHash = ((fpHash << 5) + fpHash) + rawHashStr.charCodeAt(i);
       }
-      const currentHashId = 'id_' + (fpHash >>> 0).toString(16);
+      const currentHashId = (fpHash >>> 0).toString(16);
 
       // 💡 文字色をはっきりと見えるダークグレーに設定
       ctx.fillStyle = '#6e6e73';
@@ -3285,7 +3303,7 @@ function renderHistoryList() {
     for (let i = 0; i < rawStr.length; i++) {
       hash = ((hash << 5) + hash) + rawStr.charCodeAt(i);
     }
-    return 'id_' + (hash >>> 0).toString(16);
+    return (hash >>> 0).toString(16);
   }
 
   const fpMap = {};
@@ -3338,13 +3356,13 @@ function renderHistoryList() {
 
   localStorage.setItem('typing-best-records', JSON.stringify(mergedBests));
 
-  if (bestTargets.length > 0) {
+if (bestTargets.length > 0) {
     const sectionTitle = document.createElement('div');
     sectionTitle.className = 'history-best-section-title';
     sectionTitle.innerHTML = '🏆 ベスト記録 <div class="info-icon-wrapper" style="margin-left:6px;">i<span class="info-tooltip">同じお題セットを5回以上プレイすると記録されます</span></div>';
     container.appendChild(sectionTitle);
 
-    bestTargets.forEach(({ fp, name, bestScore, bestIndex, bestItem, playCount, validCount }) => {
+    bestTargets.forEach(({ fp, name, author, bestScore, bestIndex, bestItem, playCount, validCount }) => {
       const card = document.createElement('div');
       card.className = 'history-best-card';
 
@@ -3354,12 +3372,12 @@ function renderHistoryList() {
         if (match) matchedIndex = match.index;
       }
 
-      const totalQ = bestItem
-        ? (bestItem.totalQuestions || (bestItem.playedKanjiList || []).length || '-')
-        : '-';
-
-      const penaltyText = bestItem && bestItem.penalty !== undefined ? `${bestItem.penalty}秒` : '0秒';
-      const missText = bestItem && bestItem.miss !== undefined ? `${bestItem.miss}回` : '-';
+      const totalQ = bestItem ? (bestItem.totalQuestions || (bestItem.playedKanjiList || []).length || '-') : '-';
+      
+      const penaltyVal = bestItem && bestItem.penalty !== undefined ? bestItem.penalty : 0;
+      const penaltyStr = penaltyVal > 0 ? ` ｜ ペナルティ: ${penaltyVal}秒` : '';
+      
+      const missText = bestItem && bestItem.miss !== undefined ? `${bestItem.miss}回` : '-回';
       const dateText = bestItem && bestItem.date ? bestItem.date : '';
 
       const btnHtml = matchedIndex !== undefined ? `
@@ -3380,17 +3398,17 @@ function renderHistoryList() {
 
       const fpEncoded = btoa(unescape(encodeURIComponent(fp)));
 
-      // 💡 修正：文字（.history-best-name）とアイコンを完全に分けて、見切れを防止
+      // 💡 修正：IDをタイトル横から削除し、メタ情報（日付の後）に等幅フォントで追加
       card.innerHTML = `
         <button class="history-best-delete-btn" onclick="deleteBestRecord('${fpEncoded}', event)" title="このベスト記録を削除">×</button>
-        <div class="history-best-left">
-          <div class="history-best-card-top" style="display:flex; align-items:center; gap:6px; min-width:0;">
-            <div class="history-best-name" style="flex:0 1 auto; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0;">${name}</div>
-            <div class="info-icon-wrapper" style="margin:0;">i<span class="info-tooltip">ハッシュID: <span style="font-family:'Share Tech Mono',monospace;font-weight:bold;">${fp}</span></span></div>
-            <div class="history-best-play-count" style="margin-left:4px;">${playCount}回プレイ（完走 ${validCount}回）</div>
+        <div class="history-item-left">
+          <div class="title-row">
+            <div class="history-item-title">${name}</div>
+            <span class="history-item-author">${author && author !== '未設定' ? '作者: ' + author : ''}</span>
+            <span class="history-best-play-count" style="margin-left:6px;">${playCount}回プレイ（完走 ${validCount}回）</span>
           </div>
-          <div class="history-item-meta">
-            ${dateText ? `${dateText} ｜ ` : ''}問題数: ${totalQ}問 ｜ ペナルティ: ${penaltyText} ｜ ミス: ${missText}
+          <div class="history-item-meta" style="margin-top:2px;">
+            ${dateText ? `${dateText} ｜ ` : ''}ID: <span style="font-family:'Share Tech Mono',monospace; letter-spacing:0;">${fp}</span> ｜ 問題数: ${totalQ}問${penaltyStr} ｜ ミス: ${missText}
           </div>
         </div>
         <div class="history-item-right">
@@ -3421,25 +3439,22 @@ function renderHistoryList() {
     const scoreClass = isRetire ? 'history-item-score retire' : 'history-item-score';
     const scoreText = isRetire ? 'RETIRE' : `${item.score}秒`;
 
-    // 💡 作者テキストのスタイルも横並びに対応
-    const authorHTML = (item.author && item.author !== '未設定')
-      ? `<div class="history-item-author" style="flex-shrink:0; margin-left:0;">作者: ${item.author}</div>` : '';
-
-    const penaltyText = item.penalty !== undefined ? `${item.penalty}秒` : '0秒';
+    const penaltyVal = item.penalty !== undefined ? item.penalty : 0;
+    const penaltyStr = penaltyVal > 0 ? ` ｜ ペナルティ: ${penaltyVal}秒` : '';
+    
     const missText = item.miss !== undefined ? `${item.miss}回` : '0回';
     const totalQText = item.totalQuestions !== undefined ? `${item.totalQuestions}問` : '-問';
 
-    // 💡 修正：すべての履歴のタイトルも文字とアイコンを分離して見切れ防止
+    // 💡 修正：IDをタイトル横から削除し、メタ情報（日付の後）に等幅フォントで追加
     div.innerHTML = `
       <button class="history-delete-btn" onclick="deleteHistoryItem(${index}, event)">×</button>
       <div class="history-item-left">
-        <div style="display:flex; align-items:center; gap:6px; min-width:0;">
-          <div class="history-item-title" style="flex:0 1 auto; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0;">${item.template || '無題'}</div>
-          ${authorHTML}
-          <div class="info-icon-wrapper" style="margin:0;">i<span class="info-tooltip">ハッシュID: <span style="font-family:'Share Tech Mono',monospace;font-weight:bold;">${fp}</span></span></div>
+        <div class="title-row">
+          <div class="history-item-title">${item.template || '無題'}</div>
+          <span class="history-item-author">${item.author && item.author !== '未設定' ? '作者: ' + item.author : ''}</span>
         </div>
         <div class="history-item-meta" style="margin-top:2px;">
-          ${item.date} ｜ 問題数: ${totalQText} ｜ ペナルティ: ${penaltyText} ｜ ミス: ${missText}
+          ${item.date} ｜ ID: <span style="font-family:'Share Tech Mono',monospace; letter-spacing:0;">${fp}</span> ｜ 問題数: ${totalQText}${penaltyStr} ｜ ミス: ${missText}
         </div>
       </div>
       <div class="history-item-right">
