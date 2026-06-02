@@ -1103,7 +1103,7 @@
     </div>
     
     <div style="position: absolute; right: 28px; bottom: 68px; font-size: 0.7rem; color: var(--mist); font-family: 'Share Tech Mono', monospace; opacity: 0.6; pointer-events: none; letter-spacing: 0.05em;">
-      v0.3.2
+      v0.3.1
     </div>
 
     <a href="https://x.com/KiyuUre" target="_blank" rel="noopener noreferrer" class="home-x-link" title="Xを開く">
@@ -2231,47 +2231,46 @@ async function endGame(isEscaped = false) {
       date: dateStr
     };
 
-    let currentHistory = JSON.parse(localStorage.getItem('typing-play-history') || '[]');
-    currentHistory.unshift(newRecord);
-
-    // 💡 履歴が50件を超えたら切り詰める
-    if (currentHistory.length > 50) {
-      currentHistory = currentHistory.slice(0, 50);
-    }
-    localStorage.setItem('typing-play-history', JSON.stringify(currentHistory));
-
-    // 💡 【大修正】通算プレイ回数とベスト記録を独立して加算・更新する
-function makeFpForSave(item) {
-      const title = item.template || '無題';
-      const author = item.author || '';
-      const list = item.playedKanjiList || [];
-      
+// 💡 共通ハッシュ生成関数（高速サンプリング方式でフリーズを防止）
+    window.generateHashId = function(title, author, list) {
       const details = list.map(q => {
         const kanji = q.kanji || '';
         const reading = q.reading || '';
-        // 💡 画像データは非常に長いため、文字数と一部の文字列を抽出して一意性を確保
-let imgHash = 'no_img';
-        if (q.image) {
+        let imgHash = 'no_img';
+        if (q.image && q.image !== "EXTERNAL_IMAGE") {
           let h = 5381;
-          for (let j = 0; j < q.image.length; j++) {
+          // 画像が大きくても最大500回のループで済むように文字を間引いて計算
+          const step = Math.max(1, Math.ceil(q.image.length / 500));
+          for (let j = 0; j < q.image.length; j += step) {
             h = ((h << 5) + h) + q.image.charCodeAt(j);
           }
-          imgHash = (h >>> 0).toString(16);
+          imgHash = q.image.length + '_' + (h >>> 0).toString(16);
+        } else if (q.image === "EXTERNAL_IMAGE") {
+          imgHash = 'ext_img'; // 過去の履歴用のフォールバック
         }
         return `${kanji}|${reading}|${imgHash}`;
       }).sort().join('||');
       
-      const rawStr = `${title}::${author}::${list.length}::${details}`;
-      
-      // 💡 文字列を短いハッシュID（例：id_a1b2c3d4）に変換する軽量アルゴリズム
+      const rawStr = `${title || '無題'}::${author || ''}::${list.length}::${details}`;
       let hash = 5381;
       for (let i = 0; i < rawStr.length; i++) {
         hash = ((hash << 5) + hash) + rawStr.charCodeAt(i);
       }
       return (hash >>> 0).toString(16);
-    }
+    };
 
-    const currentFp = makeFpForSave(newRecord);
+    // 💡 実際の画像データを含んだ sourceList からハッシュIDを生成し、保存用データに直接埋め込む
+    const currentFp = window.generateHashId(newRecord.template, newRecord.author, sourceList);
+    newRecord.fp = currentFp;
+
+    let currentHistory = JSON.parse(localStorage.getItem('typing-play-history') || '[]');
+    currentHistory.unshift(newRecord);
+
+    // 履歴が50件を超えたら切り詰める
+    if (currentHistory.length > 50) {
+      currentHistory = currentHistory.slice(0, 50);
+    }
+    localStorage.setItem('typing-play-history', JSON.stringify(currentHistory));
     const savedBests = JSON.parse(localStorage.getItem('typing-best-records') || '{}');
 
     if (!savedBests[currentFp]) {
@@ -3118,26 +3117,11 @@ function checkProgress() {
     loadedCount++;
     if (loadedCount === totalItems) {
       // 💡 追加：画像生成の最後にハッシュIDを右下に描き込む
-      const detailsStr = playedKanjiList.map(q => {
-        const k = q.kanji || '';
-        const r = q.reading || '';
-let imgH = 'no_img';
-        if (q.image) {
-          let h = 5381;
-          for (let j = 0; j < q.image.length; j++) {
-            h = ((h << 5) + h) + q.image.charCodeAt(j);
-          }
-          imgH = (h >>> 0).toString(16);
-        }
-        return `${k}|${r}|${imgH}`;
-      }).sort().join('||');
-      
-      const rawHashStr = `${playedTemplateName || '無題'}::${playedAuthorName || ''}::${playedKanjiList.length}::${detailsStr}`;
-      let fpHash = 5381;
-      for (let i = 0; i < rawHashStr.length; i++) {
-        fpHash = ((fpHash << 5) + fpHash) + rawHashStr.charCodeAt(i);
-      }
-      const currentHashId = (fpHash >>> 0).toString(16);
+const currentHashId = window.generateHashId(
+        playedTemplateName || '無題',
+        playedAuthorName || '',
+        playedKanjiList
+      );
 
       // 💡 文字色をはっきりと見えるダークグレーに設定
       ctx.fillStyle = '#6e6e73';
@@ -3290,32 +3274,9 @@ function renderHistoryList() {
     return;
   }
 
-  function makeFingerprint(item) {
-    const title = item.template || '無題';
-    const author = item.author || '';
-    const list = item.playedKanjiList || [];
-    
-    const details = list.map(q => {
-      const kanji = q.kanji || '';
-      const reading = q.reading || '';
-let imgHash = 'no_img';
-      if (q.image) {
-        let h = 5381;
-        for (let j = 0; j < q.image.length; j++) {
-          h = ((h << 5) + h) + q.image.charCodeAt(j);
-        }
-        imgHash = (h >>> 0).toString(16);
-      }
-      return `${kanji}|${reading}|${imgHash}`;
-    }).sort().join('||');
-    
-    const rawStr = `${title}::${author}::${list.length}::${details}`;
-    
-    let hash = 5381;
-    for (let i = 0; i < rawStr.length; i++) {
-      hash = ((hash << 5) + hash) + rawStr.charCodeAt(i);
-    }
-    return (hash >>> 0).toString(16);
+function makeFingerprint(item) {
+    if (item.fp) return item.fp;
+    return window.generateHashId(item.template, item.author, item.playedKanjiList);
   }
 
   const fpMap = {};
