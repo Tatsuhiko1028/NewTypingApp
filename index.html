@@ -1807,6 +1807,33 @@ function playSE(seFunction) {
 }
 
 // ========== UTILS ==========
+// 💡 追加：どこからでも呼び出せるように、ハッシュ生成関数を一番外側に定義します
+window.generateHashId = function(title, author, list) {
+  const details = list.map(q => {
+    const kanji = q.kanji || '';
+    const reading = q.reading || '';
+    let imgHash = 'no_img';
+    if (q.image && q.image !== "EXTERNAL_IMAGE") {
+      let h = 5381;
+      const step = Math.max(1, Math.ceil(q.image.length / 500));
+      for (let j = 0; j < q.image.length; j += step) {
+        h = ((h << 5) + h) + q.image.charCodeAt(j);
+      }
+      imgHash = q.image.length + '_' + (h >>> 0).toString(16);
+    } else if (q.image === "EXTERNAL_IMAGE") {
+      imgHash = 'ext_img';
+    }
+    return `${kanji}|${reading}|${imgHash}`;
+  }).sort().join('||');
+  
+  const rawStr = `${title || '無題'}::${author || ''}::${list.length}::${details}`;
+  let hash = 5381;
+  for (let i = 0; i < rawStr.length; i++) {
+    hash = ((hash << 5) + hash) + rawStr.charCodeAt(i);
+  }
+  return (hash >>> 0).toString(16);
+};
+
 function saveKanjiList() {
   try {
     const cleanList = kanjiList.map(item => ({
@@ -2231,36 +2258,7 @@ async function endGame(isEscaped = false) {
       date: dateStr
     };
 
-// 💡 共通ハッシュ生成関数（高速サンプリング方式でフリーズを防止）
-    window.generateHashId = function(title, author, list) {
-      const details = list.map(q => {
-        const kanji = q.kanji || '';
-        const reading = q.reading || '';
-        let imgHash = 'no_img';
-        if (q.image && q.image !== "EXTERNAL_IMAGE") {
-          let h = 5381;
-          // 画像が大きくても最大500回のループで済むように文字を間引いて計算
-          const step = Math.max(1, Math.ceil(q.image.length / 500));
-          for (let j = 0; j < q.image.length; j += step) {
-            h = ((h << 5) + h) + q.image.charCodeAt(j);
-          }
-          imgHash = q.image.length + '_' + (h >>> 0).toString(16);
-        } else if (q.image === "EXTERNAL_IMAGE") {
-          imgHash = 'ext_img'; // 過去の履歴用のフォールバック
-        }
-        return `${kanji}|${reading}|${imgHash}`;
-      }).sort().join('||');
-      
-      const rawStr = `${title || '無題'}::${author || ''}::${list.length}::${details}`;
-      let hash = 5381;
-      for (let i = 0; i < rawStr.length; i++) {
-        hash = ((hash << 5) + hash) + rawStr.charCodeAt(i);
-      }
-      return (hash >>> 0).toString(16);
-    };
-
-    // 💡 実際の画像データを含んだ sourceList からハッシュIDを生成し、保存用データに直接埋め込む
-    const currentFp = window.generateHashId(newRecord.template, newRecord.author, sourceList);
+const currentFp = window.generateHashId(newRecord.template, newRecord.author, sourceList);
     newRecord.fp = currentFp;
 
     let currentHistory = JSON.parse(localStorage.getItem('typing-play-history') || '[]');
