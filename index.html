@@ -1103,7 +1103,7 @@
     </div>
     
     <div style="position: absolute; right: 28px; bottom: 68px; font-size: 0.7rem; color: var(--mist); font-family: 'Share Tech Mono', monospace; opacity: 0.6; pointer-events: none; letter-spacing: 0.05em;">
-      v0.3.1
+      v0.3.2
     </div>
 
     <a href="https://x.com/KiyuUre" target="_blank" rel="noopener noreferrer" class="home-x-link" title="Xを開く">
@@ -2250,9 +2250,13 @@ function makeFpForSave(item) {
         const kanji = q.kanji || '';
         const reading = q.reading || '';
         // 💡 画像データは非常に長いため、文字数と一部の文字列を抽出して一意性を確保
-        let imgHash = 'no_img';
+let imgHash = 'no_img';
         if (q.image) {
-          imgHash = q.image.length + '_' + q.image.substring(0, 20) + '_' + q.image.slice(-20);
+          let h = 5381;
+          for (let j = 0; j < q.image.length; j++) {
+            h = ((h << 5) + h) + q.image.charCodeAt(j);
+          }
+          imgHash = (h >>> 0).toString(16);
         }
         return `${kanji}|${reading}|${imgHash}`;
       }).sort().join('||');
@@ -3117,9 +3121,13 @@ function checkProgress() {
       const detailsStr = playedKanjiList.map(q => {
         const k = q.kanji || '';
         const r = q.reading || '';
-        let imgH = 'no_img';
+let imgH = 'no_img';
         if (q.image) {
-          imgH = q.image.length + '_' + q.image.substring(0, 20) + '_' + q.image.slice(-20);
+          let h = 5381;
+          for (let j = 0; j < q.image.length; j++) {
+            h = ((h << 5) + h) + q.image.charCodeAt(j);
+          }
+          imgH = (h >>> 0).toString(16);
         }
         return `${k}|${r}|${imgH}`;
       }).sort().join('||');
@@ -3290,9 +3298,13 @@ function renderHistoryList() {
     const details = list.map(q => {
       const kanji = q.kanji || '';
       const reading = q.reading || '';
-      let imgHash = 'no_img';
+let imgHash = 'no_img';
       if (q.image) {
-        imgHash = q.image.length + '_' + q.image.substring(0, 20) + '_' + q.image.slice(-20);
+        let h = 5381;
+        for (let j = 0; j < q.image.length; j++) {
+          h = ((h << 5) + h) + q.image.charCodeAt(j);
+        }
+        imgHash = (h >>> 0).toString(16);
       }
       return `${kanji}|${reading}|${imgHash}`;
     }).sort().join('||');
