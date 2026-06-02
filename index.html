@@ -1390,123 +1390,127 @@ try {
   };
 
   // 📥 【シンプルメッセージ版】起動時のURL自動チェック・インポートシステム
+// 📥 【シンプルメッセージ版】起動時のURL自動チェック・インポートシステム
   window.firebaseCheckURLParam = async function() {
-    const urlParams = new URLSearchParams(window.location.search);
-    
-    // 分岐パターンA: 「?data=〜」（文字データのみのURL）だった場合
-    const sharedTextData = urlParams.get('data');
-    if (sharedTextData) {
-      try {
-        let base64 = sharedTextData.replace(/-/g, '+').replace(/_/g, '/');
-        while (base64.length % 4) { base64 += '='; }
-        const binString = atob(base64);
-        const uint8 = new Uint8Array(binString.length);
-        for (let i = 0; i < binString.length; i++) {
-          uint8[i] = binString.charCodeAt(i);
-        }
-        const decodedStr = new TextDecoder().decode(uint8);
-        const data = JSON.parse(decodedStr);
-        const list = data.kanji || data;
+    // 💡 修正：関数が呼ばれた瞬間（ブラウザ読み込み時）に、まずは「開始」ボタンをロックする
+    if (window.setStartButtonLoading) window.setStartButtonLoading(true);
 
-        if (Array.isArray(list)) {
-          kanjiList = list.filter(item => item.reading && (item.kanji || item.image));
-          saveKanjiList();
-          applyImportedData(data);
-          showToast(`「${templateName}」を読み込みました`); 
-        }
-      } catch (err) {
-        console.error("テキストURLデコードエラー:", err);
-      }
-      return;
-    }
-
-    // 分岐パターンB: 「?id=〜」（画像付き保存URL）だった場合
-const roomId = urlParams.get('id');
-    if (roomId) {
-      currentCloudId = roomId; 
-      showToast('データを読み込み中……'); 
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
       
-      // 💡 読み込み開始：ボタンをロック
-      if (window.setStartButtonLoading) window.setStartButtonLoading(true); 
-      
-      try {
-        const snapshot = await window.getFirebaseDataById(roomId);
-        if (snapshot) {
-          const data = snapshot;
+      // 分岐パターンA: 「?data=〜」（文字データのみのURL）だった場合
+      const sharedTextData = urlParams.get('data');
+      if (sharedTextData) {
+        try {
+          let base64 = sharedTextData.replace(/-/g, '+').replace(/_/g, '/');
+          while (base64.length % 4) { base64 += '='; }
+          const binString = atob(base64);
+          const uint8 = new Uint8Array(binString.length);
+          for (let i = 0; i < binString.length; i++) {
+            uint8[i] = binString.charCodeAt(i);
+          }
+          const decodedStr = new TextDecoder().decode(uint8);
+          const data = JSON.parse(decodedStr);
           const list = data.kanji || data;
+
           if (Array.isArray(list)) {
             kanjiList = list.filter(item => item.reading && (item.kanji || item.image));
             saveKanjiList();
             applyImportedData(data);
             showToast(`「${templateName}」を読み込みました`); 
           }
-        } else {
-          showToast('⚠️ 指定されたデータが見つかりませんでした');
+        } catch (err) {
+          console.error("テキストURLデコードエラー:", err);
         }
-      } catch (err) {
-        console.error("Firebase読み込みエラー:", err);
-        showToast('⚠️ データの読み込みに失敗しました');
-      } finally {
-        // 💡 読み込み終了：成功・失敗に関わらずボタンのロックを解除
-        if (window.setStartButtonLoading) window.setStartButtonLoading(false); 
+        return; // ※ここでreturnしても、最後に必ずfinallyが実行されてロック解除されます
       }
-      return;
-    }
 
-    const historyData = JSON.parse(localStorage.getItem('typing-play-history') || '[]');
-    
-    // 💡【最重要判定】現在メモリ（またはローカル保存）にあるデータが、画像迷子（EXTERNAL_IMAGE）になっているかチェック
-    const isImageMissingError = kanjiList.some(item => item.image === "EXTERNAL_IMAGE");
-
-    if (isImageMissingError) {
-      // 🚨【エラー状態のとき】
-      if (historyData.length > 0 && historyData[0].cloudId) {
-        // ① 履歴が残っていれば、今まで通りクラウドから高画質データをダウンロードして救済する
-        showToast('クラウドからデータを復元中……');
+      // 分岐パターンB: 「?id=〜」（画像付き保存URL）だった場合
+      const roomId = urlParams.get('id');
+      if (roomId) {
+        currentCloudId = roomId; 
+        showToast('データを読み込み中……'); 
+        
         try {
-          const snapshot = await window.getFirebaseDataById(historyData[0].cloudId);
-          if (snapshot && snapshot.kanji) {
-            currentCloudId = historyData[0].cloudId;
-            kanjiList = snapshot.kanji; 
-            saveKanjiList();
-            applyImportedData(snapshot);
-            showToast('データを復元しました');
+          const snapshot = await window.getFirebaseDataById(roomId);
+          if (snapshot) {
+            const data = snapshot;
+            const list = data.kanji || data;
+            if (Array.isArray(list)) {
+              kanjiList = list.filter(item => item.reading && (item.kanji || item.image));
+              saveKanjiList();
+              applyImportedData(data);
+              showToast(`「${templateName}」を読み込みました`); 
+            }
+          } else {
+            showToast('⚠️ 指定されたデータが見つかりませんでした');
           }
         } catch (err) {
-          console.log("履歴からの復元エラー:", err);
+          console.error("Firebase読み込みエラー:", err);
+          showToast('⚠️ データの読み込みに失敗しました');
+        }
+        return; // ※ここでreturnしても、最後に必ずfinallyが実行されます
+      }
+
+      const historyData = JSON.parse(localStorage.getItem('typing-play-history') || '[]');
+      
+      // 💡【最重要判定】現在メモリ（またはローカル保存）にあるデータが、画像迷子（EXTERNAL_IMAGE）になっているかチェック
+      const isImageMissingError = kanjiList.some(item => item.image === "EXTERNAL_IMAGE");
+
+      if (isImageMissingError) {
+        // 🚨【エラー状態のとき】
+        if (historyData.length > 0 && historyData[0].cloudId) {
+          // ① 履歴が残っていれば、今まで通りクラウドから高画質データをダウンロードして救済する
+          showToast('クラウドからデータを復元中……');
+          try {
+            const snapshot = await window.getFirebaseDataById(historyData[0].cloudId);
+            if (snapshot && snapshot.kanji) {
+              currentCloudId = historyData[0].cloudId;
+              kanjiList = snapshot.kanji; 
+              saveKanjiList();
+              applyImportedData(snapshot);
+              showToast('データを復元しました');
+            }
+          } catch (err) {
+            console.log("履歴からの復元エラー:", err);
+          }
+        } else {
+          // ② 🎯【たつひこさんの指定条件】履歴すらなく、画像も復元できない「完全なエラー状態」の時だけ、安全にサイトを初期化する
+          kanjiList = []; 
+          templateName = '無題のお題';
+          authorName = '';
+          currentCloudId = '';
+
+          localStorage.removeItem('kanji-dojo-list');
+          localStorage.setItem('kanji-dojo-template-name', templateName);
+          localStorage.setItem('kanji-dojo-author-name', authorName);
+
+          document.getElementById('start-template-name').textContent = templateName;
+          document.title = 'みんなのタイピング - ' + templateName;
+          const startAuthorLabel = document.getElementById('start-author-name');
+          if (startAuthorLabel && startAuthorLabel.parentElement) {
+            startAuthorLabel.textContent = '未設定';
+            startAuthorLabel.parentElement.style.display = 'none';
+          }
+          
+          const inputT = document.getElementById('input-template-name');
+          const inputA = document.getElementById('input-author-name');
+          if (inputT) inputT.value = templateName;
+          if (inputA) inputA.value = authorName;
+
+          renderKanjiList();
+          updateHomeCount();
+          
+          showToast('復元不可能なデータを検出したため、初期状態にリセットしました');
         }
       } else {
-        // ② 🎯【たつひこさんの指定条件】履歴すらなく、画像も復元できない「完全なエラー状態」の時だけ、安全にサイトを初期化する
-        kanjiList = []; 
-        templateName = '無題のお題';
-        authorName = '';
-        currentCloudId = '';
-
-        localStorage.removeItem('kanji-dojo-list');
-        localStorage.setItem('kanji-dojo-template-name', templateName);
-        localStorage.setItem('kanji-dojo-author-name', authorName);
-
-        document.getElementById('start-template-name').textContent = templateName;
-        document.title = 'みんなのタイピング - ' + templateName;
-        const startAuthorLabel = document.getElementById('start-author-name');
-        if (startAuthorLabel && startAuthorLabel.parentElement) {
-          startAuthorLabel.textContent = '未設定';
-          startAuthorLabel.parentElement.style.display = 'none';
-        }
-        
-        const inputT = document.getElementById('input-template-name');
-        const inputA = document.getElementById('input-author-name');
-        if (inputT) inputT.value = templateName;
-        if (inputA) inputA.value = authorName;
-
-        renderKanjiList();
-        updateHomeCount();
-        
-        showToast('復元不可能なデータを検出したため、初期状態にリセットしました');
+        // ✅【正常なとき】履歴がなくても、メモリにお題（本物の画像や文字）が残っているなら、リセットせずそのまま保持！
+        console.log("データは正常に保持されています。");
       }
-    } else {
-      // ✅【正常なとき】履歴がなくても、メモリにお題（本物の画像や文字）が残っているなら、リセットせずそのまま保持！
-      console.log("データは正常に保持されています。");
+
+    } finally {
+      // 💡 修正：共有URLを開いた時でも、過去履歴から復元している時でも、"すべての処理が終わった時点"で必ずボタンのロックを解除する
+      if (window.setStartButtonLoading) window.setStartButtonLoading(false);
     }
   }; // 👈 window.firebaseCheckURLParam の閉じカッコです
 
@@ -1767,6 +1771,14 @@ let currentUploadedImageBase64 = '';
 let currentCloudId = '';
 let lastResultData = null;
 
+// 💡 追加：事前計算したハッシュ値を保持する変数
+let currentActiveHashId = '';
+let playedHashId = '';
+
+window.updateActiveHashId = function() {
+  currentActiveHashId = window.generateHashId(templateName, authorName, kanjiList);
+};
+
 let questionStartTime = 0;
 let timeRecords = [];
 let isGameRetire = false; 
@@ -1798,6 +1810,7 @@ window.addEventListener('DOMContentLoaded', () => {
   if (inputA) inputA.value = authorName;
 
   updateHomeCount();
+if (typeof window.updateActiveHashId === 'function') window.updateActiveHashId();
 });
 
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -1891,7 +1904,9 @@ function saveKanjiList() {
       reading: item.reading,
       image: (item.image && item.image.startsWith('data:image')) ? "EXTERNAL_IMAGE" : item.image
     }));
-    localStorage.setItem('kanji-dojo-list', JSON.stringify(cleanList));
+localStorage.setItem('kanji-dojo-list', JSON.stringify(cleanList));
+    // 💡 追加：問題が変更されたらすぐにハッシュを再計算する
+    if (typeof window.updateActiveHashId === 'function') window.updateActiveHashId();
   } catch (e) {
     console.warn("保存エラー:", e);
   }
@@ -1938,8 +1953,13 @@ function saveTemplateMeta() {
   templateName = nameInput || '無題お題';
   authorName = authorInput || ''; 
   
-  localStorage.setItem('kanji-dojo-template-name', templateName);
+localStorage.setItem('kanji-dojo-template-name', templateName);
   localStorage.setItem('kanji-dojo-author-name', authorName); 
+  
+  // 💡 追加：名前が変更されたらすぐにハッシュを再計算する
+  if (typeof window.updateActiveHashId === 'function') window.updateActiveHashId();
+
+  document.getElementById('start-template-name').textContent = templateName;
   
   document.getElementById('start-template-name').textContent = templateName;
   document.title = 'みんなのタイピング - ' + templateName;
@@ -2031,10 +2051,15 @@ function startGame() {
     ? gameQueue[gameQueue.length - 1].kanji 
     : null;
   
-  playedTemplateName = templateName;
+playedTemplateName = templateName;
   playedAuthorName = authorName; 
   playedKanjiList = kanjiList.map((item, index) => ({ ...item, originalIndex: index }));
-  timeRecords = []; 
+  
+  // 💡 追加：プレイ開始時のハッシュ値を確保しておく
+  if (!currentActiveHashId) window.updateActiveHashId();
+  playedHashId = currentActiveHashId;
+
+  timeRecords = [];
   missCount = 0; 
   questionStartTime = elapsedTime; 
   
@@ -2297,12 +2322,8 @@ async function endGame(isEscaped = false) {
 
 const hasImage = sourceList.some(item => item.image && item.image.startsWith('data:image'));
 
-    // 💡 1. 画像データを含んだ状態のリストから最新のハッシュIDを生成する
-    const currentFp = window.generateHashId(
-      playedTemplateName || templateName,
-      playedAuthorName || authorName,
-      sourceList
-    );
+    // 💡 1. 事前に計算・確保しておいたハッシュIDを使用する（毎回計算しないため高速）
+    const currentFp = playedHashId || currentActiveHashId;
 
     // 💡 2. 画像が含まれていれば、ハッシュ値を元にクラウドバックアップを確認・実行する
     if (hasImage) {
@@ -3367,103 +3388,48 @@ function renderHistoryList() {
     return;
   }
 
-function makeFingerprint(item) {
-    if (item.fp) return item.fp;
-    return window.generateHashId(item.template, item.author, item.playedKanjiList);
-  }
+const savedBests = JSON.parse(localStorage.getItem('typing-best-records') || '{}');
 
-  const fpMap = {};
-  historyData.forEach((item, index) => {
-    const fp = makeFingerprint(item);
-    if (!fpMap[fp]) fpMap[fp] = [];
-    fpMap[fp].push({ item, index });
-  });
-
-  const bestFromHistory = {};
-  Object.entries(fpMap)
-    .filter(([, entries]) => entries.length >= 5)
-    .forEach(([fp, entries]) => {
-      const validEntries = entries.filter(e => e.item.score !== 'RETIRE');
-      if (validEntries.length === 0) return;
-      const best = validEntries.reduce((a, b) =>
-        parseFloat(a.item.score) <= parseFloat(b.item.score) ? a : b
-      );
-      bestFromHistory[fp] = {
-        fp,
-        name: best.item.template || '無題',
-        author: best.item.author || '',
-        bestScore: parseFloat(best.item.score),
-        bestIndex: best.index,
-        bestItem: best.item,
-        playCount: entries.length,
-        validCount: validEntries.length,
-      };
-    });
-
-  const savedBests = JSON.parse(localStorage.getItem('typing-best-records') || '{}');
-  const mergedBests = { ...savedBests };
-
-  Object.entries(bestFromHistory).forEach(([fp, current]) => {
-    if (!mergedBests[fp] || current.bestScore < mergedBests[fp].bestScore) {
-      mergedBests[fp] = current;
-    } else {
-      mergedBests[fp].playCount = Math.max(mergedBests[fp].playCount, current.playCount);
-      mergedBests[fp].validCount = Math.max(mergedBests[fp].validCount, current.validCount);
-      if (current.bestIndex !== undefined) {
-        mergedBests[fp].bestIndex = current.bestIndex;
-        mergedBests[fp].bestItem = current.bestItem;
-      }
-    }
-  });
-
-  const bestTargets = Object.values(mergedBests)
+  // 💡 修正: 履歴データ(historyData)は一切参照せず、完全に独立した savedBests だけから描画します
+  const bestTargets = Object.values(savedBests)
     .filter(best => best.playCount >= 5 && best.validCount > 0)
     .sort((a, b) => a.bestScore - b.bestScore);
-
-  localStorage.setItem('typing-best-records', JSON.stringify(mergedBests));
-
+  
 if (bestTargets.length > 0) {
     const sectionTitle = document.createElement('div');
     sectionTitle.className = 'history-best-section-title';
     sectionTitle.innerHTML = '🏆 ベスト記録 <div class="info-icon-wrapper" style="margin-left:6px;">i<span class="info-tooltip">同じお題セットを5回以上プレイすると記録されます</span></div>';
     container.appendChild(sectionTitle);
 
-    bestTargets.forEach(({ fp, name, author, bestScore, bestIndex, bestItem, playCount, validCount }) => {
+bestTargets.forEach(({ fp, name, author, bestScore, bestItem, playCount, validCount }) => {
       const card = document.createElement('div');
       card.className = 'history-best-card';
 
-      let matchedIndex = bestIndex;
-      if (matchedIndex === undefined && fpMap[fp] && bestItem) {
-        const match = fpMap[fp].find(e => e.item.score === bestItem.score && e.item.date === bestItem.date);
-        if (match) matchedIndex = match.index;
-      }
-
+      // 💡 履歴インデックスからの検索を廃止し、保存されたベストデータ(bestItem)を直接使います
       const totalQ = bestItem ? (bestItem.totalQuestions || (bestItem.playedKanjiList || []).length || '-') : '-';
-      
       const penaltyVal = bestItem && bestItem.penalty !== undefined ? bestItem.penalty : 0;
       const penaltyStr = penaltyVal > 0 ? ` ｜ ペナルティ: ${penaltyVal}秒` : '';
-      
-      const missText = bestItem && bestItem.miss !== undefined ? `${bestItem.miss}回` : '-回';
+      const missText = bestItem && bestItem.miss !== undefined ? `${bestItem.miss}回` : '-';
       const dateText = bestItem && bestItem.date ? bestItem.date : '';
 
-      const btnHtml = matchedIndex !== undefined ? `
-          <button class="history-action-btn" onclick="actionFromHistory(${matchedIndex}, 'image')" title="画像を出力">
+      const fpEncoded = btoa(unescape(encodeURIComponent(fp)));
+
+      // 💡 ボタンのアクションも「ベスト記録からの呼び出し(true)」としてハッシュIDを直接渡す
+      const btnHtml = `
+          <button class="history-action-btn" onclick="actionFromHistory('${fpEncoded}', 'image', true)" title="画像を出力">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"></path>
               <line x1="12" y1="15" x2="12" y2="2"></line>
               <polyline points="16 11 12 15 8 11"></polyline>
             </svg>
           </button>
-          <button class="history-action-btn" onclick="actionFromHistory(${matchedIndex}, 'x')" title="𝕏で共有" style="font-weight:bold;font-family:-apple-system,sans-serif;font-size:0.8rem;">𝕏</button>
-          <button class="history-action-btn" onclick="applyHistoryData(${matchedIndex})" title="お題を復元">
+          <button class="history-action-btn" onclick="actionFromHistory('${fpEncoded}', 'x', true)" title="𝕏で共有" style="font-weight:bold;font-family:-apple-system,sans-serif;font-size:0.8rem;">𝕏</button>
+          <button class="history-action-btn" onclick="applyHistoryData('${fpEncoded}', true)" title="お題を復元">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <path d="M23 4v6h-6"></path>
               <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
             </svg>
-          </button>` : '';
-
-      const fpEncoded = btoa(unescape(encodeURIComponent(fp)));
-
+          </button>`;
       // 💡 修正：IDをタイトル横から削除し、メタ情報（日付の後）に等幅フォントで追加
       card.innerHTML = `
         <button class="history-best-delete-btn" onclick="deleteBestRecord('${fpEncoded}', event)" title="このベスト記録を削除">×</button>
@@ -3497,7 +3463,7 @@ if (bestTargets.length > 0) {
   }
 
   historyData.forEach((item, index) => {
-    const fp = makeFingerprint(item); 
+const fp = item.fp || window.generateHashId(item.template, item.author, item.playedKanjiList || []);
     const div = document.createElement('div');
     div.className = 'history-item';
 
@@ -3570,9 +3536,16 @@ window.deleteBestRecord = function(fpEncoded, event) {
   }
 };
 
-async function actionFromHistory(index, type) {
-  const historyData = JSON.parse(localStorage.getItem('typing-play-history') || '[]');
-  const data = historyData[index];
+async function actionFromHistory(indexOrFpEncoded, type, isBest = false) {
+  let data = null;
+  if (isBest) {
+    const fp = decodeURIComponent(escape(atob(indexOrFpEncoded)));
+    const savedBests = JSON.parse(localStorage.getItem('typing-best-records') || '{}');
+    if (savedBests[fp]) data = savedBests[fp].bestItem;
+  } else {
+    const historyData = JSON.parse(localStorage.getItem('typing-play-history') || '[]');
+    data = historyData[indexOrFpEncoded];
+  }
   if (!data) return;
 
   currentActionHistoryData = data; 
@@ -3734,9 +3707,17 @@ window.compressImageToMini = function(base64Str) {
   });
 }
 
-async function applyHistoryData(index) {
-  const historyData = JSON.parse(localStorage.getItem('typing-play-history') || '[]');
-  const data = historyData[index];
+// 💡 修正: 同じく、ベスト記録の独立データからも直接お題を復元できるように拡張
+async function applyHistoryData(indexOrFpEncoded, isBest = false) {
+  let data = null;
+  if (isBest) {
+    const fp = decodeURIComponent(escape(atob(indexOrFpEncoded)));
+    const savedBests = JSON.parse(localStorage.getItem('typing-best-records') || '{}');
+    if (savedBests[fp]) data = savedBests[fp].bestItem;
+  } else {
+    const historyData = JSON.parse(localStorage.getItem('typing-play-history') || '[]');
+    data = historyData[indexOrFpEncoded];
+  }
   if (!data) return;
 
   const confirmApply = confirm(`⚠️ この記録のお題「${data.template}」を現在の設定に復元しますか？\n\n※現在設定されているお題はクリアされ、上書きされます。`);
