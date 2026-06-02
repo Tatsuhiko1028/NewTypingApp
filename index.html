@@ -1290,7 +1290,6 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.10.0/fireba
   const db = getDatabase(app);
 
   // グローバル関数として登録し、HTML側から呼び出せるようにドッキング
-  // グローバル関数として登録し、HTML側から呼び出せるようにドッキング
   window.firebaseCopyShareURL = async function(isSilent = false) {
     if (kanjiList.length === 0) {
       if (!isSilent) showToast('共有するお題が登録されていません');
@@ -1569,7 +1568,7 @@ const KANA_TO_ROMAJI = {
   'ぴゃ': ['pya'], 'ぴゅ': ['pyu'], 'ぴょ': ['pyo'],
   'ふぁ': ['fa'], 'ふぃ': ['fi'], 'ふぇ': ['fe'], 'ふぉ': ['fo'],
   'ぁ': ['xa','la'], 'ぃ': ['xi','li'], 'ぅ': ['xu','lu'], 'ぇ': ['xe','le'], 'ぉ': ['xo','lo'],
-  'っ': ['xtu','ltu','ltsu','xtsu'],'ゃ': ['xya','lya'],'ゅ': ['xyu','lyu'],'ょ': ['xyo','lyo'],'ー': ['-'], 
+  'っ': ['xtu','ltu','ltsu','xtsu'],'ゃ': ['xya','lya'],'ゅ': ['xyu','lyu'],'ょ': ['xyo','lyo'],'ー': ['-'], 'てぃ': ['thi'], 
   // 💡 追加：全角・半角どちらで登録されても、半角キー入力として認識させる
   '！': ['!'], '!': ['!'],
   '？': ['?'], '?': ['?'],
@@ -1897,8 +1896,6 @@ localStorage.setItem('kanji-dojo-template-name', templateName);
   
   // 💡 追加：名前が変更されたらすぐにハッシュを再計算する
   if (typeof window.updateActiveHashId === 'function') window.updateActiveHashId();
-
-  document.getElementById('start-template-name').textContent = templateName;
   
   document.getElementById('start-template-name').textContent = templateName;
   document.title = 'みんなのタイピング - ' + templateName;
