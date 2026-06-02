@@ -2386,13 +2386,18 @@ async function endGame(isEscaped = false) {
     listContainer.appendChild(div);
   });
 
+// 💡 追加：プレイ日時を生成して保存データに含める
+  const d = new Date();
+  const playDateStr = `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+
   lastResultData = {
     template: playedTemplateName || templateName,
     author: playedAuthorName || authorName,
     score: isGameRetire ? 'RETIRE' : elapsedTime.toFixed(1),
     miss: missCount,
     totalQuestions: gameQueue.length,
-    timeRecords: timeRecords
+    timeRecords: timeRecords,
+    date: playDateStr // 💡 追加：画像出力に使うために日付を記録
   };
 
   showScreen('result-screen');
@@ -2716,7 +2721,7 @@ async function saveResultAsImage() {
 
   if (shareUrl && typeof QRious !== 'undefined') {
     const qrSize = 110; 
-    const qrX = 1900 - qrSize; 
+    const qrX = 1885 - qrSize; 
     const qrY = 30;
     
     const qrCanvas = document.createElement('canvas');
@@ -2742,15 +2747,34 @@ async function saveResultAsImage() {
     ctx.textAlign = 'left'; 
   }
 
+ // テンプレート名
   ctx.fillStyle = '#1d1d1f';
   ctx.font = 'bold 52px "Noto Serif JP", serif';
   ctx.fillText(playedTemplateName, 120, 165);
 
-  if (playedAuthorName && playedAuthorName !== '未設定' && playedAuthorName !== '') {
-    ctx.fillStyle = '#86868b';
-    ctx.font = '26px -apple-system, sans-serif';
-    ctx.fillText(`作者：${playedAuthorName}`, 120, 215);
+  // 💡 追加：プレイ日時の取得（過去の履歴からの出力ならその時の時間を使う）
+  let playDate = '';
+  if (lastResultData && lastResultData.date) {
+    playDate = lastResultData.date;
+  } else {
+    const d = new Date();
+    playDate = `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
   }
+
+  // 💡 修正：作者名とプレイ日時を横に綺麗に並べて描画する
+  let metaX = 120;
+  ctx.fillStyle = '#86868b';
+  ctx.font = '26px -apple-system, sans-serif';
+
+  if (playedAuthorName && playedAuthorName !== '未設定' && playedAuthorName !== '') {
+    const authorText = `作者：${playedAuthorName}`;
+    ctx.fillText(authorText, metaX, 215);
+    // 作者名の長さを計算して、その右に 40px の隙間を空ける
+    metaX += ctx.measureText(authorText).width + 40; 
+  }
+
+  // 作者名がない場合は左端から、ある場合は作者名の右側にプレイ日時を描画
+  ctx.fillText(`プレイ日時：${playDate}`, metaX, 215);
 
   ctx.fillStyle = '#1d1d1f';
   if (isGameRetire) {
