@@ -1241,7 +1241,7 @@
 
     <div style="width: 100%; margin-top: 0.5rem;">
       <button class="btn" onclick="clearBestRecords()" style="width: 100%; color: #86868b; border-color: #d2d2d7; background: transparent; font-weight: 500; font-size: 0.82rem;">
-        🏆 ベスト記録をクリア
+        ベスト記録をすべてクリア
       </button>
     </div>
 
@@ -1305,7 +1305,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.10.0/fireba
         // ✨【大修正】isSilent（リザルトからの呼び出し）のときは、クリップボードへのコピーを絶対にスキップする！
         if (!isSilent) {
           await navigator.clipboard.writeText(textShareURL);
-          showToast('🔗 共有URLをコピーしました');
+          showToast('共有URLをコピーしました');
         }
         return textShareURL; 
       }
@@ -1317,7 +1317,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.10.0/fireba
     const shareBtn = document.getElementById('btn-cloud-share');
     if (shareBtn && !isSilent) {
       shareBtn.disabled = true;
-      shareBtn.textContent = '⏳ 保存中...';
+      shareBtn.textContent = '保存中……';
     }
 
     try {
@@ -1385,7 +1385,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.10.0/fireba
           kanjiList = list.filter(item => item.reading && (item.kanji || item.image));
           saveKanjiList();
           applyImportedData(data);
-          showToast(`✨ 「${templateName}」を読み込みました`); 
+          showToast(`「${templateName}」を読み込みました`); 
         }
       } catch (err) {
         console.error("テキストURLデコードエラー:", err);
@@ -1397,7 +1397,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.10.0/fireba
     const roomId = urlParams.get('id');
     if (roomId) {
       currentCloudId = roomId; 
-      showToast('データを読み込み中...'); 
+      showToast('データを読み込み中……'); 
       try {
         const snapshot = await window.getFirebaseDataById(roomId);
         if (snapshot) {
@@ -1407,14 +1407,14 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.10.0/fireba
             kanjiList = list.filter(item => item.reading && (item.kanji || item.image));
             saveKanjiList();
             applyImportedData(data);
-            showToast(`✨ 「${templateName}」を読み込みました`); 
+            showToast(`「${templateName}」を読み込みました`); 
           }
         } else {
-          showToast('⚠️ 指定されたデータが見つかりませんでした。');
+          showToast('⚠️ 指定されたデータが見つかりませんでした');
         }
       } catch (err) {
         console.error("Firebase読み込みエラー:", err);
-        showToast('⚠️ データの読み込みに失敗しました。');
+        showToast('⚠️ データの読み込みに失敗しました');
       }
       return;
     }
@@ -1428,7 +1428,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.10.0/fireba
       // 🚨【エラー状態のとき】
       if (historyData.length > 0 && historyData[0].cloudId) {
         // ① 履歴が残っていれば、今まで通りクラウドから高画質データをダウンロードして救済する
-        showToast('⏳ クラウドから前回のデータを復元中...');
+        showToast('データを復元中……');
         try {
           const snapshot = await window.getFirebaseDataById(historyData[0].cloudId);
           if (snapshot && snapshot.kanji) {
@@ -1436,7 +1436,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.10.0/fireba
             kanjiList = snapshot.kanji; 
             saveKanjiList();
             applyImportedData(snapshot);
-            showToast('✨ 前回のデータを復元しました');
+            showToast('データを復元しました');
           }
         } catch (err) {
           console.log("履歴からの復元エラー:", err);
@@ -1468,7 +1468,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.10.0/fireba
         renderKanjiList();
         updateHomeCount();
         
-        showToast('🧹 復元不可能なデータを検出したため、初期状態にリセットしました');
+        showToast('復元不可能なデータを検出したため、初期状態にリセットしました');
       }
     } else {
       // ✅【正常なとき】履歴がなくても、メモリにお題（本物の画像や文字）が残っているなら、リセットせずそのまま保持！
@@ -1832,7 +1832,7 @@ function copyShareURL() {
   if (typeof window.firebaseCopyShareURL === 'function') {
     window.firebaseCopyShareURL();
   } else {
-    showToast('⏳ クラウドシステムを準備中です。1秒後にやり直してください。');
+    showToast('クラウドシステムを準備中です。1秒後にやり直してください。');
   }
 }
 
@@ -2183,7 +2183,7 @@ async function endGame(isEscaped = false) {
     const hasImage = sourceList.some(item => item.image && item.image.startsWith('data:image'));
 
     if (hasImage && !currentCloudId) {
-      showToast('☁️ クラウドへデータを自動バックアップ中...');
+      showToast('自動バックアップ中……');
       if (window.uploadGameDataOnEnd) {
         currentCloudId = await window.uploadGameDataOnEnd(
           playedTemplateName || templateName,
@@ -2730,7 +2730,7 @@ function importJSONAppend(event) {
 let currentGeneratedCanvas = null;
 
 async function saveResultAsImage() {
-  showToast('🖼️ リザルト画像を生成中...');
+  showToast('画像を生成中……');
 
   let shareUrl = '';
   if (typeof window.firebaseCopyShareURL === 'function') {
@@ -3092,29 +3092,6 @@ async function saveResultAsImage() {
 
 ctx.textBaseline = 'alphabetic';
 
-  // 💡 【追加】右下に目立たないように問題セットのハッシュIDを描画
-  const detailsStr = playedKanjiList.map(q => {
-    const k = q.kanji || '';
-    const r = q.reading || '';
-    let imgH = 'no_img';
-    if (q.image) {
-      imgH = q.image.length + '_' + q.image.substring(0, 20) + '_' + q.image.slice(-20);
-    }
-    return `${k}|${r}|${imgH}`;
-  }).sort().join('||');
-  const rawHashStr = `${playedTemplateName || '無題'}::${playedAuthorName || ''}::${playedKanjiList.length}::${detailsStr}`;
-  let fpHash = 5381;
-  for (let i = 0; i < rawHashStr.length; i++) {
-    fpHash = ((fpHash << 5) + fpHash) + rawHashStr.charCodeAt(i);
-  }
-  const currentHashId = 'id_' + (fpHash >>> 0).toString(16);
-
-  ctx.fillStyle = '#d2d2d7'; // 💡 薄いグレーで目立たなくする
-  ctx.font = '16px "Share Tech Mono", monospace';
-  ctx.textAlign = 'right';
-  ctx.fillText(currentHashId, 1880, 1050); // 右下の隅に配置
-  ctx.textAlign = 'left'; // リセット
-
 function checkProgress() {
     loadedCount++;
     if (loadedCount === totalItems) {
@@ -3180,11 +3157,11 @@ function triggerCanvasDownload() {
     a.href = dataUrl;
     a.download = `Result_${playedTemplateName}.png`;
     a.click();
-    showToast('💾 画像をフォルダに保存しました！');
+    showToast('画像をフォルダに保存しました');
     closePreviewModal(); 
   } catch (err) {
     console.error(err);
-    showToast('⚠️ 保存に失敗しました');
+    showToast('保存に失敗しました');
   }
 }
 
@@ -3199,7 +3176,7 @@ async function copyResultImageToClipboard() {
             new ClipboardItem({ "image/png": blob })
           ]);
           
-          showToast('✨ 画像をクリップボードにコピーしました！');
+          showToast('画像をクリップボードにコピーしました');
           closePreviewModal();
           
         } catch (clipErr) {
@@ -3210,7 +3187,7 @@ async function copyResultImageToClipboard() {
     }, 'image/png');
   } catch (err) {
     console.error("処理エラー:", err);
-    showToast('⚠️ コピーに失敗しました');
+    showToast('コピーに失敗しました');
   }
 }
 
@@ -3543,7 +3520,7 @@ async function actionFromHistory(index, type) {
   const hasImageQuestion = finalKanjiList.some(item => item.image === "EXTERNAL_IMAGE");
   
   if (hasImageQuestion && data.cloudId) {
-    if (type === 'image') showToast('⏳ クラウドから高画質データを読み込み中...');
+    if (type === 'image') showToast('読み込み中……');
     try {
       const snapshot = await window.getFirebaseDataById(data.cloudId);
       if (snapshot && snapshot.kanji) {
@@ -3608,32 +3585,32 @@ async function actionFromHistory(index, type) {
 }
 
 function clearPlayHistory() {
-  const confirmClear = confirm('⚠️ これまでのプレイ履歴（スコア記録）をすべて完全に削除します。\n\nベスト記録（🏆）は別途保持されます。\n\n本当によろしいですか？');
+  const confirmClear = confirm('⚠️ これまでのプレイ履歴（スコア記録）をすべて完全に削除します。\n\nベスト記録は別途保持されます。\n\n本当によろしいですか？');
   if (!confirmClear) return;
   
   localStorage.removeItem('typing-play-history');
   renderHistoryList(); 
-  showToast('🗑️ プレイ履歴をクリアしました');
+  showToast('プレイ履歴をクリアしました');
 }
 
 function clearBestRecords() {
-  const confirmClear = confirm('⚠️ 保存されているベスト記録（🏆）をすべて削除します。\n\n本当によろしいですか？');
+  const confirmClear = confirm('⚠️ 保存されているベスト記録をすべて削除します。\n\n本当によろしいですか？');
   if (!confirmClear) return;
   
   localStorage.removeItem('typing-best-records');
   renderHistoryList();
-  showToast('🗑️ ベスト記録をクリアしました');
+  showToast('ベスト記録をクリアしました');
 }
 
 async function copyAndTweetFromModal() {
   if (!currentGeneratedCanvas) return;
-  showToast('⏳ 画像をコピー中...');
+  showToast('画像をコピー中……');
 
   currentGeneratedCanvas.toBlob(async function(blob) {
     if (blob) {
       try {
         await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
-        showToast('✨ コピー完了！𝕏を開きます');
+        showToast('コピーしました');
         
         shareOnX(currentActionHistoryData); 
         closePreviewModal();
@@ -3683,7 +3660,7 @@ async function applyHistoryData(index) {
   const hasImageQuestion = finalKanjiList.some(item => item.image === "EXTERNAL_IMAGE");
   
   if (hasImageQuestion && data.cloudId) {
-    showToast('⏳ クラウドから高画質画像を復元中...');
+    showToast('クラウドから復元中……');
     try {
       const firebaseData = await window.getFirebaseDataById(data.cloudId);
       if (firebaseData && firebaseData.kanji) {
@@ -3702,7 +3679,7 @@ async function applyHistoryData(index) {
       }
     } catch (err) {
       console.error("Firebaseからの画像復元に失敗:", err);
-      showToast('⚠️ 画像の一部が高画質で復元できませんでした');
+      showToast('⚠️ 画像の一部が復元できませんでした');
     }
   }
 
@@ -3735,7 +3712,7 @@ async function applyHistoryData(index) {
   renderKanjiList();
   updateHomeCount();
 
-  showToast(`✨ 「${templateName}」をサイトに復元しました！`);
+  showToast(`「${templateName}」を復元しました`);
 }
 
 function getUnifiedResultData(historyData = null) {
