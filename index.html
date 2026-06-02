@@ -1216,15 +1216,20 @@
 
     <div id="kanji-list" class="kanji-list" style="margin-top: 1rem;"></div>
 
-    <div class="io-row" style="margin-top: 1rem; flex-wrap: nowrap;">
-      <button id="btn-cloud-share" class="btn btn-primary" onclick="copyShareURL()" style="flex:0 0 auto; gap: 0.3em; background: #0071e3; color: #ffffff; border: none; white-space: nowrap;">
-        URLで共有
-      </button>    
-      <button class="btn btn-secondary" onclick="exportJSON()" style="flex:0 0 auto; white-space: nowrap;">⬇ JSON出力</button>
-      <button class="btn btn-secondary" onclick="document.getElementById('file-import').click()" style="flex:0 0 auto; white-space: nowrap;">⬆ JSON入力</button>
-      <button class="btn btn-secondary" onclick="document.getElementById('file-import-append').click()" style="flex:0 0 auto; border-color: #34c759; color: #34c759; white-space: nowrap;">➕ JSON追加</button>
-      <input type="file" id="file-import" accept=".json" onchange="importJSON(event)" style="display:none !important;">
-      <input type="file" id="file-import-append" accept=".json" onchange="importJSONAppend(event)" style="display:none !important;">
+<div style="display: flex; flex-direction: column; gap: 0.3rem; width: 100%;">
+      <div class="io-row" style="flex-wrap: nowrap; gap: 0.4rem;">
+        <button id="btn-hash-export" class="btn btn-primary" onclick="exportHash()" style="flex: 10 !important; justify-content: center !important; padding: 0.5rem 0.2rem !important; gap: 0.3em; background: #0071e3; color: #ffffff; border: none; white-space: nowrap;">⬇ URL共有</button>
+        <button class="btn btn-secondary" onclick="importHash(false)" style="flex: 10 !important; justify-content: center !important; padding: 0.5rem 0.2rem !important; white-space: nowrap;">⬆ URL上書き</button>
+        <button class="btn btn-secondary" onclick="importHash(true)" style="flex: 6 !important; justify-content: center !important; padding: 0.5rem 0.2rem !important; font-size: 0.8rem !important; border-color: #34c759; color: #34c759; white-space: nowrap;">➕ URL追加</button>
+      </div>
+
+      <div class="io-row" style="flex-wrap: nowrap; gap: 0.4rem;">
+        <button class="btn btn-secondary" onclick="exportJSON()" style="flex: 10 !important; justify-content: center !important; padding: 0.5rem 0.2rem !important; white-space: nowrap;">⬇ JSON共有</button>
+        <button class="btn btn-secondary" onclick="document.getElementById('file-import').click()" style="flex: 10 !important; justify-content: center !important; padding: 0.5rem 0.2rem !important; white-space: nowrap;">⬆ JSON上書き</button>
+        <button class="btn btn-secondary" onclick="document.getElementById('file-import-append').click()" style="flex: 6 !important; justify-content: center !important; padding: 0.5rem 0.2rem !important; font-size: 0.8rem !important; border-color: #34c759; color: #34c759; white-space: nowrap;">➕ JSON追加</button>
+        <input type="file" id="file-import" accept=".json" onchange="importJSON(event)" style="display:none !important;">
+        <input type="file" id="file-import-append" accept=".json" onchange="importJSONAppend(event)" style="display:none !important;">
+      </div>
     </div>
 
     <div style="width: 100%; margin-top: 0.5rem;">
@@ -2799,6 +2804,118 @@ function importJSONAppend(event) {
   };
   reader.readAsText(file);
   event.target.value = '';
+}
+
+// 💡 修正：ハッシュ値ではなく「URL」としてクリップボードに出力する
+async function exportHash() {
+  if (kanjiList.length === 0) {
+    showToast('出力するお題が登録されていません');
+    return;
+  }
+  const btn = document.getElementById('btn-hash-export');
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = '保存中…';
+  }
+
+  try {
+    const currentFp = window.generateHashId(templateName, authorName, kanjiList);
+    // クラウドに保存
+    if (window.uploadGameDataOnEnd) {
+       await window.uploadGameDataOnEnd(templateName, authorName, kanjiList, currentFp);
+    }
+    
+    // URLを組み立ててクリップボードにコピー
+    const targetOrigin = window.location.origin.includes('file://') ? 'https://tatsuhiko1028.github.io/NewTypingApp' : window.location.origin;
+    const shareUrl = targetOrigin + window.location.pathname + '?id=' + currentFp;
+    await navigator.clipboard.writeText(shareUrl);
+    showToast(`URLをコピーしました`);
+  } catch (e) {
+    console.error(e);
+    showToast('出力に失敗しました');
+} finally {
+    if (btn) {
+      btn.disabled = false;
+      // 💡 修正：「URL共有」に戻すように変更
+      btn.textContent = '⬇ URL共有';
+    }
+  }
+}
+
+// 💡 修正：URLでもハッシュ値だけでも読み込めるように自動判別する
+async function importHash(isAppend = false) {
+  const actionName = isAppend ? '追加' : '入力（上書き）';
+  const inputVal = prompt(`読み込むお題のURL、またはハッシュ値を入力してください\n※現在の設定に${actionName}されます`);
+  
+  if (!inputVal) return;
+  let hashId = inputVal.trim();
+  if (!hashId) return;
+
+  // 💡 URL形式の場合は「id=〇〇」の部分だけを自動で抜き出す
+  const match = hashId.match(/(?:[\?&]id=)([^&]+)/);
+  if (match) {
+    hashId = match[1];
+  } else if (hashId.startsWith('http')) {
+    showToast('⚠️ 有効なIDが含まれていないURLです');
+    return;
+  }
+
+  showToast('クラウドからデータを読み込み中……');
+  try {
+    const snapshot = await window.getFirebaseDataById(hashId);
+    if (snapshot) {
+      const data = snapshot;
+      const list = data.kanji || data;
+      if (!Array.isArray(list)) throw new Error('invalid');
+
+      const newItems = list.filter(item => item.reading && (item.kanji || item.image));
+
+      if (isAppend) {
+        kanjiList = kanjiList.concat(newItems);
+        saveKanjiList();
+        renderKanjiList();
+        updateHomeCount();
+        showToast(`${newItems.length}件を追加しました（合計 ${kanjiList.length}問）`);
+      } else {
+        kanjiList = newItems;
+        templateName = data.templateName || data.template || '無題のお題';
+        authorName = data.authorName || data.author || '';
+        
+        saveKanjiList();
+        localStorage.setItem('kanji-dojo-template-name', templateName);
+        localStorage.setItem('kanji-dojo-author-name', authorName);
+        
+        const inputT = document.getElementById('input-template-name');
+        const inputA = document.getElementById('input-author-name');
+        if (inputT) inputT.value = templateName;
+        if (inputA) inputA.value = authorName;
+
+        if (document.getElementById('start-template-name')) {
+          document.getElementById('start-template-name').textContent = templateName;
+          document.title = 'みんなのタイピング - ' + templateName;
+        }
+        
+        const startAuthorLabel = document.getElementById('start-author-name');
+        if (startAuthorLabel) {
+          if (authorName && authorName !== '未設定' && authorName !== '') {
+            startAuthorLabel.textContent = authorName;
+            if (startAuthorLabel.parentElement) startAuthorLabel.parentElement.style.display = 'inline';
+          } else {
+            startAuthorLabel.textContent = '未設定';
+            if (startAuthorLabel.parentElement) startAuthorLabel.parentElement.style.display = 'none';
+          }
+        }
+        renderKanjiList();
+        updateHomeCount();
+        showToast(`「${templateName}」を読み込みました`);
+      }
+    } else {
+      showToast('⚠️ 指定されたデータが見つかりませんでした');
+    }
+  } catch (err) {
+    console.error("Firebase読み込みエラー:", err);
+    showToast('⚠️ データの読み込みに失敗しました');
+  }
 }
 
 let currentGeneratedCanvas = null;
