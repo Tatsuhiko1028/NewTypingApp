@@ -1077,9 +1077,9 @@
     <div class="logo-sub" style="margin-bottom: 2rem;">Minnna no Typing</div>
     
     <div class="menu-grid" style="grid-template-columns: 1fr 1fr; gap: 0.8rem; margin-top: 0; margin-bottom: 2.5rem;">
-      <div class="menu-card" onclick="startGame()" style="grid-column: 1 / -1; padding: 0.9rem 0.5rem; display: flex; flex-direction: column; justify-content: center; align-items: center;">
-        <div class="label" style="font-size: 1.2rem; color: #1d1d1f;">開始</div>
-        <div class="desc" style="font-size: 0.75rem; margin-top: 0.2rem;">タイピング開始</div>
+<div id="home-start-btn" class="menu-card" onclick="startGame()" style="grid-column: 1 / -1; padding: 0.9rem 0.5rem; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+        <div id="home-start-label" class="label" style="font-size: 1.2rem; color: #1d1d1f;">開始</div>
+        <div id="home-start-desc" class="desc" style="font-size: 0.75rem; margin-top: 0.2rem;">タイピング開始</div>
       </div>
       
       <div class="menu-card" onclick="showScreen('settings-screen')" style="padding: 0.7rem 0.5rem; display: flex; flex-direction: column; justify-content: center; align-items: center;">
@@ -1103,7 +1103,7 @@
     </div>
     
     <div style="position: absolute; right: 28px; bottom: 68px; font-size: 0.7rem; color: var(--mist); font-family: 'Share Tech Mono', monospace; opacity: 0.6; pointer-events: none; letter-spacing: 0.05em;">
-      v0.3.3
+      v0.3.4
     </div>
 
     <a href="https://x.com/KiyuUre" target="_blank" rel="noopener noreferrer" class="home-x-link" title="Xを開く">
@@ -1338,26 +1338,19 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.10.0/fireba
       shareBtn.textContent = '保存中……';
     }
 
-    try {
-      const dataObject = {
-        templateName: templateName,
-        authorName: authorName,
-        kanji: kanjiList
-      };
-
-const currentFp = window.generateHashId(templateName, authorName, kanjiList);
+try {
+      // 💡 ランダムURLではなくハッシュ値を生成して部屋のURLにする
+      const currentFp = window.generateHashId(templateName, authorName, kanjiList);
       const roomId = currentFp;
       
       const existingData = await window.getFirebaseDataById(roomId);
       
-      // クラウドにまだ無ければ画像を圧縮してアップロード
+      // クラウドにまだ無ければ（最適化済みの）画像をそのままアップロード
       if (!existingData) {
-        const compressedKanjiList = await Promise.all(kanjiList.map(async item => {
-          if (item.image && item.image.startsWith('data:image')) {
-            const compressedImg = await window.compressImageToMini(item.image);
-            return { ...item, image: compressedImg };
-          }
-          return item;
+        const cleanListForCloud = kanjiList.map(item => ({
+          kanji: item.kanji,
+          reading: item.reading,
+          image: item.image
         }));
         
         const roomRef = ref(db, `shared_rooms/${roomId}`);
@@ -1366,7 +1359,7 @@ const currentFp = window.generateHashId(templateName, authorName, kanjiList);
             module.set(roomRef, {
               templateName: templateName || '無題のお題',
               authorName: authorName || '',
-              kanji: compressedKanjiList
+              kanji: cleanListForCloud
             }).then(resolve).catch(reject);
           });
         });
@@ -1378,12 +1371,11 @@ const currentFp = window.generateHashId(templateName, authorName, kanjiList);
 
       const cloudShareURL = targetOrigin + window.location.pathname + '?id=' + roomId;
 
-      // ✨【大修正】クラウド側も同様に、リザルトからの時はコピーをスキップ
       if (!isSilent) {
         await navigator.clipboard.writeText(cloudShareURL);
         showToast('共有URLをコピーしました');
       }
-      return cloudShareURL; 
+      return cloudShareURL;
 
     } catch (err) {
       console.error("Firebase共有エラー:", err);
@@ -1429,10 +1421,14 @@ const currentFp = window.generateHashId(templateName, authorName, kanjiList);
     }
 
     // 分岐パターンB: 「?id=〜」（画像付き保存URL）だった場合
-    const roomId = urlParams.get('id');
+const roomId = urlParams.get('id');
     if (roomId) {
       currentCloudId = roomId; 
       showToast('データを読み込み中……'); 
+      
+      // 💡 読み込み開始：ボタンをロック
+      if (window.setStartButtonLoading) window.setStartButtonLoading(true); 
+      
       try {
         const snapshot = await window.getFirebaseDataById(roomId);
         if (snapshot) {
@@ -1450,6 +1446,9 @@ const currentFp = window.generateHashId(templateName, authorName, kanjiList);
       } catch (err) {
         console.error("Firebase読み込みエラー:", err);
         showToast('⚠️ データの読み込みに失敗しました');
+      } finally {
+        // 💡 読み込み終了：成功・失敗に関わらずボタンのロックを解除
+        if (window.setStartButtonLoading) window.setStartButtonLoading(false); 
       }
       return;
     }
@@ -1562,30 +1561,27 @@ const currentFp = window.generateHashId(templateName, authorName, kanjiList);
   };
 
 // 💡 修正：ハッシュ値(fp)を受け取り、クラウドに存在しない時だけ保存する
-  window.uploadGameDataOnEnd = async function(tName, aName, qList, fp) {
+window.uploadGameDataOnEnd = async function(tName, aName, qList, fp) {
     if (!fp) return '';
     try {
-      // 1. すでに同じハッシュ値のデータがクラウドにあるかチェック
       const existingData = await window.getFirebaseDataById(fp);
       if (existingData) {
-        return fp; // 既にある場合はアップロードをスキップ！
+        return fp; // 既に同じハッシュのデータがある場合はスキップ
       }
 
       const roomRef = ref(db, `shared_rooms/${fp}`);
 
-      // 2. なければ画像を軽量化してアップロード
-      const compressedKanjiList = await Promise.all(qList.map(async item => {
-        if (item.image && item.image.startsWith('data:image')) {
-          const compressedImg = await window.compressImageToMini(item.image);
-          return { ...item, image: compressedImg };
-        }
-        return item;
+      // 💡 二重圧縮（compressImageToMini）を外し、綺麗な状態のまま保存
+      const cleanKanjiList = qList.map(item => ({
+        kanji: item.kanji,
+        reading: item.reading,
+        image: item.image
       }));
 
       await set(roomRef, {
         templateName: tName || '無題のお題',
         authorName: aName || '',
-        kanji: compressedKanjiList
+        kanji: cleanKanjiList
       });
       
       return fp;
@@ -1630,7 +1626,16 @@ const KANA_TO_ROMAJI = {
   'ぴゃ': ['pya'], 'ぴゅ': ['pyu'], 'ぴょ': ['pyo'],
   'ふぁ': ['fa'], 'ふぃ': ['fi'], 'ふぇ': ['fe'], 'ふぉ': ['fo'],
   'ぁ': ['xa','la'], 'ぃ': ['xi','li'], 'ぅ': ['xu','lu'], 'ぇ': ['xe','le'], 'ぉ': ['xo','lo'],
-  'っ': ['xtu','ltu','ltsu','xtsu'],'ゃ': ['xya','lya'],'ゅ': ['xyu','lyu'],'ょ': ['xyo','lyo'],
+  'っ': ['xtu','ltu','ltsu','xtsu'],'ゃ': ['xya','lya'],'ゅ': ['xyu','lyu'],'ょ': ['xyo','lyo'],'ー': ['-'], 
+  // 💡 追加：全角・半角どちらで登録されても、半角キー入力として認識させる
+  '！': ['!'], '!': ['!'],
+  '？': ['?'], '?': ['?'],
+  '（': ['('], '(': ['('],
+  '）': [')'], ')': [')'],
+  '、': [','], ',': [','],
+  '。': ['.'], '.': ['.'],
+  '「': ['['], '[': ['['],
+  '」': [']'], ']': [']']
 };
 
 function kanaToRomajiOptions(readingInput) {
@@ -1719,6 +1724,29 @@ const DEFAULT_KANJI = [
 // ========== STATE ==========
 let kanjiList = JSON.parse(localStorage.getItem('kanji-dojo-list') || JSON.stringify(DEFAULT_KANJI));
 
+// 💡 追加：クラウド読み込み中を管理するフラグ
+let isCloudLoading = false; 
+
+// 💡 追加：開始ボタンの読み込み状態（見た目とクリック不可）を切り替える関数
+window.setStartButtonLoading = function(loading) {
+  isCloudLoading = loading;
+  const btn = document.getElementById('home-start-btn');
+  const label = document.getElementById('home-start-label');
+  const desc = document.getElementById('home-start-desc');
+  if (!btn || !label || !desc) return;
+
+  if (loading) {
+    btn.style.opacity = "0.5";
+    btn.style.pointerEvents = "none"; // クリックを一時的に無効化
+    label.textContent = "読み込み中…";
+    desc.textContent = "クラウドデータを同期しています";
+  } else {
+    btn.style.opacity = "1";
+    btn.style.pointerEvents = "auto"; // クリックを有効化
+    label.textContent = "開始";
+    desc.textContent = "タイピング開始";
+  }
+};
 // ✨【大修正】リロードしても消えないよう、ブラウザの記憶から名前を読み込みます
 let templateName = localStorage.getItem('kanji-dojo-template-name') || 'デフォルトのお題';
 let authorName = localStorage.getItem('kanji-dojo-author-name') || ''; 
@@ -1943,14 +1971,20 @@ function handleImageUpload(event) {
   const reader = new FileReader();
   reader.onload = function(e) {
     const img = new Image();
-    img.onload = function() {
-      const MAX_WIDTH = 1200; 
+img.onload = function() {
+      // 💡 修正：クラウド保存にも耐えうる「高画質かつ軽量なサイズ（最大500px）」に最初から統一する
+      const MAX_SIZE = 500; 
       let width = img.width;
       let height = img.height;
       
-      if (width > MAX_WIDTH) {
-        height = Math.round((height * MAX_WIDTH) / width);
-        width = MAX_WIDTH;
+      if (width > MAX_SIZE || height > MAX_SIZE) {
+        if (width > height) {
+          height = Math.round((height * MAX_SIZE) / width);
+          width = MAX_SIZE;
+        } else {
+          width = Math.round((width * MAX_SIZE) / height);
+          height = MAX_SIZE;
+        }
       }
       
       const canvas = document.createElement('canvas');
@@ -1960,9 +1994,10 @@ function handleImageUpload(event) {
 
       ctx.fillStyle = '#ffffff'; 
       ctx.fillRect(0, 0, width, height); 
-
       ctx.drawImage(img, 0, 0, width, height);
-      currentUploadedImageBase64 = canvas.toDataURL('image/jpeg', 0.9);
+      
+      // 💡 画質を0.85に設定（綺麗さを保ちつつ容量を抑えるベストな数値）
+      currentUploadedImageBase64 = canvas.toDataURL('image/jpeg', 0.85);
       
       const btn = document.getElementById('image-label-btn');
       if (btn) {
@@ -1977,6 +2012,12 @@ function handleImageUpload(event) {
 
 // ========== GAME LOGIC ==========
 function startGame() {
+  // 💡 追加：クラウドからの読み込み中はゲームを開始させないガード処理
+  if (isCloudLoading) {
+    showToast('データを同期中です。少々お待ちください……');
+    return;
+  }
+  
   currentActionHistoryData = null;
   lastResultData = null;
   
@@ -2153,7 +2194,7 @@ function onKeyDown(e) {
 
   if (e.key.length !== 1) return;
   const ch = e.key.toLowerCase();
-  if (!/[a-z]/.test(ch)) return;
+if (!/^[a-z\-!?(),.\[\]]$/.test(ch)) return;
 
   const newTyped = currentTyped + ch;
   const allOpts = currentValidOptions;
@@ -2307,14 +2348,15 @@ const hasImage = sourceList.some(item => item.image && item.image.startsWith('da
     if (currentHistory.length > 50) {
       currentHistory = currentHistory.slice(0, 50);
     }
-    localStorage.setItem('typing-play-history', JSON.stringify(currentHistory));
+localStorage.setItem('typing-play-history', JSON.stringify(currentHistory));
+
+    // 💡 5. ベスト記録の保存・更新（古いコードの残骸を一掃して綺麗にしました！）
     const savedBests = JSON.parse(localStorage.getItem('typing-best-records') || '{}');
 
     if (!savedBests[currentFp]) {
-      // 過去の記録がない場合は初期化（安全装置として過去の履歴から回数を拾う）
       let initialPlay = 0;
       let initialValid = 0;
-currentHistory.forEach(item => {
+      currentHistory.forEach(item => {
         const itemFp = item.fp || window.generateHashId(item.template, item.author, item.playedKanjiList || []);
         if (itemFp === currentFp) {
           initialPlay++;
@@ -2331,20 +2373,19 @@ currentHistory.forEach(item => {
         validCount: initialValid
       };
     } else {
-      // 既にある場合は、今回のプレイを確実に通算加算する
       savedBests[currentFp].playCount += 1;
       if (!isEscaped) {
         savedBests[currentFp].validCount += 1;
       }
     }
 
-    // 完走した場合はベストスコアの更新を判定
     if (!isEscaped) {
       const currentScore = parseFloat(newRecord.score);
       if (!savedBests[currentFp].bestItem || currentScore <= savedBests[currentFp].bestScore) {
         savedBests[currentFp].bestScore = currentScore;
         savedBests[currentFp].bestItem = newRecord;
         savedBests[currentFp].name = newRecord.template || '無題';
+        savedBests[currentFp].author = newRecord.author || '';
       }
     }
 
@@ -2538,16 +2579,23 @@ if (item.image && item.image !== "EXTERNAL_IMAGE") {
       const reader = new FileReader();
       reader.onload = function(re) {
         const img = new Image();
-        img.onload = function() {
-          const MAX_WIDTH = 1200;
+img.onload = function() {
+          // 💡 修正：こちらも同様に最大500pxに統一
+          const MAX_SIZE = 500;
           let w = img.width, h = img.height;
-          if (w > MAX_WIDTH) { h = Math.round(h * MAX_WIDTH / w); w = MAX_WIDTH; }
+          
+          if (w > MAX_SIZE || h > MAX_SIZE) {
+            if (w > h) { h = Math.round(h * MAX_SIZE / w); w = MAX_SIZE; }
+            else { w = Math.round(w * MAX_SIZE / h); h = MAX_SIZE; }
+          }
+          
           const canvas = document.createElement('canvas');
           canvas.width = w; canvas.height = h;
           const ctx2 = canvas.getContext('2d');
           ctx2.fillStyle = '#ffffff'; ctx2.fillRect(0, 0, w, h);
           ctx2.drawImage(img, 0, 0, w, h);
-          kanjiList[i].image = canvas.toDataURL('image/jpeg', 0.9);
+          
+          kanjiList[i].image = canvas.toDataURL('image/jpeg', 0.85);
           saveKanjiList();
           renderKanjiList();
           showToast('画像を更新しました');
