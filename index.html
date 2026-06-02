@@ -1103,7 +1103,7 @@
     </div>
     
     <div style="position: absolute; right: 28px; bottom: 68px; font-size: 0.7rem; color: var(--mist); font-family: 'Share Tech Mono', monospace; opacity: 0.6; pointer-events: none; letter-spacing: 0.05em;">
-      v0.3.5
+      v0.3.4
     </div>
 
     <a href="https://x.com/KiyuUre" target="_blank" rel="noopener noreferrer" class="home-x-link" title="Xを開く">
@@ -1290,55 +1290,21 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.10.0/fireba
   const db = getDatabase(app);
 
   // グローバル関数として登録し、HTML側から呼び出せるようにドッキング
+  // グローバル関数として登録し、HTML側から呼び出せるようにドッキング
   window.firebaseCopyShareURL = async function(isSilent = false) {
     if (kanjiList.length === 0) {
       if (!isSilent) showToast('共有するお題が登録されていません');
       return null;
     }
 
-    // 1. まずは「文字だけ（従来方式）」でURLを作ってみる
-    try {
-      const dataObject = {
-        templateName: templateName,
-        authorName: authorName,
-        kanji: kanjiList
-      };
-      const jsonStr = JSON.stringify(dataObject);
-      const uint8 = new TextEncoder().encode(jsonStr);
-      let binString = "";
-      for (let i = 0; i < uint8.length; i++) {
-        binString += String.fromCharCode(uint8[i]);
-      }
-      const base64Data = btoa(binString);
-      const safeBase64 = base64Data.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-      
-      // 💡 ローカルテスト時の文字数肥大化を防ぐため、本番用のURL構造で長さを計算
-      const targetOrigin = window.location.origin.includes('file://') 
-        ? 'https://tatsuhiko1028.github.io/NewTypingApp' 
-        : window.location.origin;
-        
-      const textShareURL = targetOrigin + window.location.pathname + '?data=' + safeBase64;
-
-      if (textShareURL.length <= 1000) {
-        // ✨【大修正】isSilent（リザルトからの呼び出し）のときは、クリップボードへのコピーを絶対にスキップする！
-        if (!isSilent) {
-          await navigator.clipboard.writeText(textShareURL);
-          showToast('共有URLをコピーしました');
-        }
-        return textShareURL; 
-      }
-    } catch (e) {
-      console.log("通常URL化スキップ（画像ありのためクラウドへ移行）");
-    }
-
-    // 2. 1万文字を超える場合（画像データが含まれる場合）は自動でクラウドに切り替え
+    // 💡 修正：文字数による分岐を廃止し、すべてハッシュ値でのクラウド保存URLに統一
     const shareBtn = document.getElementById('btn-cloud-share');
     if (shareBtn && !isSilent) {
       shareBtn.disabled = true;
       shareBtn.textContent = '保存中……';
     }
 
-try {
+    try {
       // 💡 ランダムURLではなくハッシュ値を生成して部屋のURLにする
       const currentFp = window.generateHashId(templateName, authorName, kanjiList);
       const roomId = currentFp;
@@ -1396,40 +1362,13 @@ try {
     if (window.setStartButtonLoading) window.setStartButtonLoading(true);
 
     try {
-      const urlParams = new URLSearchParams(window.location.search);
+const urlParams = new URLSearchParams(window.location.search);
       
-      // 分岐パターンA: 「?data=〜」（文字データのみのURL）だった場合
-      const sharedTextData = urlParams.get('data');
-      if (sharedTextData) {
-        try {
-          let base64 = sharedTextData.replace(/-/g, '+').replace(/_/g, '/');
-          while (base64.length % 4) { base64 += '='; }
-          const binString = atob(base64);
-          const uint8 = new Uint8Array(binString.length);
-          for (let i = 0; i < binString.length; i++) {
-            uint8[i] = binString.charCodeAt(i);
-          }
-          const decodedStr = new TextDecoder().decode(uint8);
-          const data = JSON.parse(decodedStr);
-          const list = data.kanji || data;
-
-          if (Array.isArray(list)) {
-            kanjiList = list.filter(item => item.reading && (item.kanji || item.image));
-            saveKanjiList();
-            applyImportedData(data);
-            showToast(`「${templateName}」を読み込みました`); 
-          }
-        } catch (err) {
-          console.error("テキストURLデコードエラー:", err);
-        }
-        return; // ※ここでreturnしても、最後に必ずfinallyが実行されてロック解除されます
-      }
-
-      // 分岐パターンB: 「?id=〜」（画像付き保存URL）だった場合
+      // 💡 修正：?data= (文字埋め込み) の処理を削除し、?id= (ハッシュ値) の読み込みのみに統一しました
       const roomId = urlParams.get('id');
       if (roomId) {
         currentCloudId = roomId; 
-        showToast('データを読み込み中……'); 
+        showToast('データを読み込み中……');
         
         try {
           const snapshot = await window.getFirebaseDataById(roomId);
@@ -2326,15 +2265,16 @@ const hasImage = sourceList.some(item => item.image && item.image.startsWith('da
     const currentFp = playedHashId || currentActiveHashId;
 
     // 💡 2. 画像が含まれていれば、ハッシュ値を元にクラウドバックアップを確認・実行する
-    if (hasImage) {
-      showToast('クラウドデータを同期中……');
+if (hasImage) {
+      currentCloudId = currentFp; // IDはすでに確定しているので待つ必要なし！
       if (window.uploadGameDataOnEnd) {
-        currentCloudId = await window.uploadGameDataOnEnd(
+        // await を削除して、画面をフリーズさせずにバックグラウンドでアップロードを走らせます
+        window.uploadGameDataOnEnd(
           playedTemplateName || templateName,
           playedAuthorName || authorName,
           sourceList,
           currentFp
-        );
+        ).catch(e => console.error("裏側アップロードエラー:", e));
       }
     } else {
       currentCloudId = ''; 
@@ -2546,14 +2486,15 @@ if (item.image && item.image !== "EXTERNAL_IMAGE") {
   const d = new Date();
   const playDateStr = `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 
-  lastResultData = {
+lastResultData = {
     template: playedTemplateName || templateName,
     author: playedAuthorName || authorName,
     score: isGameRetire ? 'RETIRE' : elapsedTime.toFixed(1),
     miss: missCount,
     totalQuestions: gameQueue.length,
     timeRecords: timeRecords,
-    date: playDateStr // 💡 追加：画像出力に使うために日付を記録
+    date: playDateStr,
+    fp: playedHashId || currentActiveHashId // 💡 修正：閉じ込められた変数を使わず、保持しているハッシュを直接渡す
   };
 
   showScreen('result-screen');
@@ -2867,9 +2808,18 @@ let currentGeneratedCanvas = null;
 async function saveResultAsImage() {
   showToast('画像を生成中……');
 
+  // 💡 修正：画像生成時のQRコードも、プレイしたデータ(fp)のURLを確実に使うようにする
   let shareUrl = '';
-  if (typeof window.firebaseCopyShareURL === 'function') {
-    shareUrl = await window.firebaseCopyShareURL(true);
+  let targetId = '';
+  if (lastResultData && (lastResultData.fp || lastResultData.cloudId)) {
+    targetId = lastResultData.fp || lastResultData.cloudId;
+  } else {
+    targetId = typeof playedHashId !== 'undefined' && playedHashId ? playedHashId : (typeof currentActiveHashId !== 'undefined' ? currentActiveHashId : '');
+  }
+
+  if (targetId) {
+    const targetOrigin = window.location.origin.includes('file://') ? 'https://tatsuhiko1028.github.io/NewTypingApp' : window.location.origin;
+    shareUrl = targetOrigin + window.location.pathname + '?id=' + targetId;
   }
 
   const canvas = document.createElement('canvas');
@@ -3334,11 +3284,16 @@ async function shareOnX(historyData = null) {
     }
   }
 
-  let gameShareUrl = '';
-  if (typeof window.firebaseCopyShareURL === 'function') {
-    gameShareUrl = await window.firebaseCopyShareURL(true);
+let targetId = data.fp || data.cloudId;
+  if (!targetId) targetId = typeof playedHashId !== 'undefined' && playedHashId ? playedHashId : (typeof currentActiveHashId !== 'undefined' ? currentActiveHashId : '');
+
+  if (targetId) {
+    const targetOrigin = window.location.origin.includes('file://') 
+      ? 'https://tatsuhiko1028.github.io/NewTypingApp' 
+      : window.location.origin;
+    const gameShareUrl = targetOrigin + window.location.pathname + '?id=' + targetId;
+    text += `\n\n👇このお題でタイピングに挑戦！\n${gameShareUrl}`;
   }
-  if (gameShareUrl) text += `\n\n👇このお題でタイピングに挑戦！\n${gameShareUrl}`;
 
   const shareUrl = `https://x.com/intent/tweet?text=${encodeURIComponent(text)}&hashtags=${encodeURIComponent('みんなのタイピング')}`;
   window.open(shareUrl, '_blank');
