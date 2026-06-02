@@ -1345,15 +1345,32 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.10.0/fireba
         kanji: kanjiList
       };
 
-      const roomsRef = ref(db, 'shared_rooms');
-      const newRoomRef = push(roomsRef);
-      const roomId = newRoomRef.key;
-
-      await new Promise((resolve, reject) => {
-        import("https://www.gstatic.com/firebasejs/10.10.0/firebase-database.js").then(module => {
-          module.set(newRoomRef, dataObject).then(resolve).catch(reject);
+const currentFp = window.generateHashId(templateName, authorName, kanjiList);
+      const roomId = currentFp;
+      
+      const existingData = await window.getFirebaseDataById(roomId);
+      
+      // クラウドにまだ無ければ画像を圧縮してアップロード
+      if (!existingData) {
+        const compressedKanjiList = await Promise.all(kanjiList.map(async item => {
+          if (item.image && item.image.startsWith('data:image')) {
+            const compressedImg = await window.compressImageToMini(item.image);
+            return { ...item, image: compressedImg };
+          }
+          return item;
+        }));
+        
+        const roomRef = ref(db, `shared_rooms/${roomId}`);
+        await new Promise((resolve, reject) => {
+          import("https://www.gstatic.com/firebasejs/10.10.0/firebase-database.js").then(module => {
+            module.set(roomRef, {
+              templateName: templateName || '無題のお題',
+              authorName: authorName || '',
+              kanji: compressedKanjiList
+            }).then(resolve).catch(reject);
+          });
         });
-      });
+      }
 
       const targetOrigin = window.location.origin.includes('file://') 
         ? 'https://tatsuhiko1028.github.io/NewTypingApp' 
@@ -1544,29 +1561,34 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.10.0/fireba
     return snapshot.exists() ? snapshot.val() : null;
   };
 
-  window.uploadGameDataOnEnd = async function(tName, aName, qList) {
+// 💡 修正：ハッシュ値(fp)を受け取り、クラウドに存在しない時だけ保存する
+  window.uploadGameDataOnEnd = async function(tName, aName, qList, fp) {
+    if (!fp) return '';
     try {
-      const roomsRef = ref(db, 'shared_rooms');
-      const newRoomRef = push(roomsRef);
-      const roomId = newRoomRef.key;
+      // 1. すでに同じハッシュ値のデータがクラウドにあるかチェック
+      const existingData = await window.getFirebaseDataById(fp);
+      if (existingData) {
+        return fp; // 既にある場合はアップロードをスキップ！
+      }
 
-      // 🎯【超重要】送信直前に、リスト内のすべての画像をバックグラウンドで超軽量化！
+      const roomRef = ref(db, `shared_rooms/${fp}`);
+
+      // 2. なければ画像を軽量化してアップロード
       const compressedKanjiList = await Promise.all(qList.map(async item => {
         if (item.image && item.image.startsWith('data:image')) {
-          const compressedImg = await compressImageForCloud(item.image);
+          const compressedImg = await window.compressImageToMini(item.image);
           return { ...item, image: compressedImg };
         }
         return item;
       }));
 
-      // 圧縮し終わったサクサクのデータを送信
-      await set(newRoomRef, {
+      await set(roomRef, {
         templateName: tName || '無題のお題',
         authorName: aName || '',
         kanji: compressedKanjiList
       });
       
-      return roomId;
+      return fp;
     } catch (err) {
       console.error("Firebaseへの自動バックアップに失敗しました:", err);
       return '';
@@ -2046,7 +2068,8 @@ function loadQuestion(idx) {
   hintDiv.textContent = ''; 
   stageArea.appendChild(hintDiv);
   
-  if (item.image) {
+// 💡 修正：EXTERNAL_IMAGE の場合は「⚠️画像消失」と表示してゲームを続行する
+  if (item.image && item.image !== "EXTERNAL_IMAGE") {
     const img = document.createElement('img');
     img.src = item.image;
     img.className = 'stage-image';
@@ -2056,8 +2079,14 @@ function loadQuestion(idx) {
     const span = document.createElement('span');
     span.className = 'kanji-main';
     span.id = 'stage-target-element';
-    span.textContent = item.kanji;
-    span.style.setProperty('--char-count', item.kanji.length);
+    if (item.image === "EXTERNAL_IMAGE") {
+      span.textContent = '⚠️ 画像消失';
+      span.style.color = '#ff3b30';
+      span.style.setProperty('--char-count', 6);
+    } else {
+      span.textContent = item.kanji;
+      span.style.setProperty('--char-count', item.kanji.length);
+    }
     stageArea.appendChild(span);
   }
   
@@ -2225,19 +2254,31 @@ async function endGame(isEscaped = false) {
     const totalQ = (gameQueue && gameQueue.length > 0) ? gameQueue.length : kanjiList.length;
     const sourceList = playedKanjiList && playedKanjiList.length > 0 ? playedKanjiList : kanjiList;
 
-    const hasImage = sourceList.some(item => item.image && item.image.startsWith('data:image'));
+const hasImage = sourceList.some(item => item.image && item.image.startsWith('data:image'));
 
-    if (hasImage && !currentCloudId) {
-      showToast('自動バックアップ中……');
+    // 💡 1. 画像データを含んだ状態のリストから最新のハッシュIDを生成する
+    const currentFp = window.generateHashId(
+      playedTemplateName || templateName,
+      playedAuthorName || authorName,
+      sourceList
+    );
+
+    // 💡 2. 画像が含まれていれば、ハッシュ値を元にクラウドバックアップを確認・実行する
+    if (hasImage) {
+      showToast('クラウドデータを同期中……');
       if (window.uploadGameDataOnEnd) {
         currentCloudId = await window.uploadGameDataOnEnd(
           playedTemplateName || templateName,
           playedAuthorName || authorName,
-          sourceList
+          sourceList,
+          currentFp
         );
       }
+    } else {
+      currentCloudId = ''; 
     }
 
+    // 💡 3. 履歴に保存するための軽量なリスト（画像を除外したもの）を作成
     const cleanKanjiList = sourceList.map(item => ({
       kanji: item.kanji,
       reading: item.reading,
@@ -2245,6 +2286,7 @@ async function endGame(isEscaped = false) {
       originalIndex: item.originalIndex 
     }));
 
+    // 💡 4. 履歴データを組み立て（cloudIdに確実にハッシュを保存する）
     const newRecord = {
       template: playedTemplateName || window.templateName || '無題のお題',
       author: playedAuthorName || window.authorName || '',
@@ -2254,17 +2296,14 @@ async function endGame(isEscaped = false) {
       totalQuestions: totalQ,
       timeRecords: [...timeRecords],
       playedKanjiList: cleanKanjiList,
-      cloudId: currentCloudId || '',
-      date: dateStr
+      cloudId: currentCloudId || currentFp,
+      date: dateStr,
+      fp: currentFp
     };
-
-const currentFp = window.generateHashId(newRecord.template, newRecord.author, sourceList);
-    newRecord.fp = currentFp;
 
     let currentHistory = JSON.parse(localStorage.getItem('typing-play-history') || '[]');
     currentHistory.unshift(newRecord);
 
-    // 履歴が50件を超えたら切り詰める
     if (currentHistory.length > 50) {
       currentHistory = currentHistory.slice(0, 50);
     }
@@ -2275,8 +2314,9 @@ const currentFp = window.generateHashId(newRecord.template, newRecord.author, so
       // 過去の記録がない場合は初期化（安全装置として過去の履歴から回数を拾う）
       let initialPlay = 0;
       let initialValid = 0;
-      currentHistory.forEach(item => {
-        if (makeFpForSave(item) === currentFp) {
+currentHistory.forEach(item => {
+        const itemFp = item.fp || window.generateHashId(item.template, item.author, item.playedKanjiList || []);
+        if (itemFp === currentFp) {
           initialPlay++;
           if (item.score !== 'RETIRE') initialValid++;
         }
@@ -2383,7 +2423,7 @@ const currentFp = window.generateHashId(newRecord.template, newRecord.author, so
     const leftGroup = document.createElement('div');
     leftGroup.className = 'r-left-group';
 
-    if (item.image) {
+if (item.image && item.image !== "EXTERNAL_IMAGE") {
       const mediaWrap = document.createElement('div');
       mediaWrap.className = 'r-media';
       const img = document.createElement('img');
@@ -2394,7 +2434,12 @@ const currentFp = window.generateHashId(newRecord.template, newRecord.author, so
     } else {
       const kanjiSpan = document.createElement('span');
       kanjiSpan.className = 'r-kanji';
-      kanjiSpan.textContent = item.kanji;
+      if (item.image === "EXTERNAL_IMAGE") {
+        kanjiSpan.textContent = '⚠️画像消失';
+        kanjiSpan.style.color = '#ff3b30';
+      } else {
+        kanjiSpan.textContent = item.kanji;
+      }
       leftGroup.appendChild(kanjiSpan);
     }
 
@@ -2476,8 +2521,10 @@ function renderKanjiList() {
     const mediaWrap = document.createElement('div');
     mediaWrap.style.cssText = 'flex-shrink:0;cursor:pointer;position:relative;';
     mediaWrap.title = '画像をクリックで変更';
-    if (item.image) {
+if (item.image && item.image !== "EXTERNAL_IMAGE") {
       mediaWrap.innerHTML = `<img src="${item.image}" class="ki-thumb" style="border:2px dashed transparent;" onmouseover="this.style.borderColor='#0071e3'" onmouseout="this.style.borderColor='transparent'">`;
+    } else if (item.image === "EXTERNAL_IMAGE") {
+      mediaWrap.innerHTML = `<div class="ki-no-thumb" title="画像データがクラウドから読み込めませんでした" style="border:1px dashed #ff3b30;border-radius:3px;width:45px;height:35px;display:flex;align-items:center;justify-content:center;font-size:0.6rem;color:#ff3b30;cursor:pointer;background:#fff0f0;">⚠️消失</div>`;
     } else {
       mediaWrap.innerHTML = `<div class="ki-no-thumb" style="border:1px dashed #d2d2d7;border-radius:3px;width:45px;height:35px;display:flex;align-items:center;justify-content:center;font-size:0.6rem;color:var(--mist);cursor:pointer;">＋画像</div>`;
     }
@@ -3014,7 +3061,7 @@ async function saveResultAsImage() {
     ctx.textBaseline = 'middle';
     ctx.textAlign = 'left';
 
-    if (item.image) {
+if (item.image && item.image !== "EXTERNAL_IMAGE") {
       const drawThumbnail = function(targetImg) {
         ctx.save();
         const thumbHeight = rowHeight - 20;
@@ -3505,26 +3552,32 @@ async function actionFromHistory(index, type) {
   finalKanjiList = data.playedKanjiList || [];
   const hasImageQuestion = finalKanjiList.some(item => item.image === "EXTERNAL_IMAGE");
   
-  if (hasImageQuestion && data.cloudId) {
-    if (type === 'image') showToast('読み込み中……');
-    try {
-      const snapshot = await window.getFirebaseDataById(data.cloudId);
-      if (snapshot && snapshot.kanji) {
-        finalKanjiList = finalKanjiList.map(item => {
-          if (item.image === "EXTERNAL_IMAGE") {
-            const matchedItem = snapshot.kanji.find(k => 
-              k.reading === item.reading && 
-              (k.kanji === item.kanji || item.kanji === '（画像問題）' || !k.kanji)
-            );
-            if (matchedItem && matchedItem.image) {
-              item.image = matchedItem.image; 
+if (hasImageQuestion) {
+    if (data.cloudId) {
+      showToast('クラウドから復元中……');
+      try {
+        const firebaseData = await window.getFirebaseDataById(data.cloudId);
+        if (firebaseData && firebaseData.kanji) {
+          finalKanjiList = finalKanjiList.map(item => {
+            if (item.image === "EXTERNAL_IMAGE") {
+              const matchedItem = firebaseData.kanji.find(k => 
+                k.reading === item.reading && 
+                (k.kanji === item.kanji || item.kanji === '（画像問題）' || !k.kanji)
+              );
+              if (matchedItem && matchedItem.image) {
+                item.image = matchedItem.image; 
+              }
             }
-          }
-          return item;
-        });
+            return item;
+          });
+        }
+      } catch (err) {
+        console.error("Firebaseからの画像復元に失敗:", err);
+        showToast('⚠️ 画像の一部が復元できませんでした');
       }
-    } catch (err) {
-      console.log("Firebaseからの高画質取得に失敗:", err);
+    } else {
+      // 💡 追加：cloudIdがない（通信失敗などで保存されなかった）場合の通知
+      showToast('⚠️ 古い記録のため、画像を復元できませんでした');
     }
   }
 
@@ -3608,7 +3661,7 @@ async function copyAndTweetFromModal() {
   }, 'image/png');
 }
 
-function compressImageToMini(base64Str) {
+window.compressImageToMini = function(base64Str) {
   return new Promise((resolve) => {
     if (!base64Str || !base64Str.startsWith('data:image')) {
       resolve(""); return;
