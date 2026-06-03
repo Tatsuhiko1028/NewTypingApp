@@ -1103,7 +1103,7 @@
     </div>
     
     <div style="position: absolute; right: 28px; bottom: 68px; font-size: 0.7rem; color: var(--mist); font-family: 'Share Tech Mono', monospace; opacity: 0.6; pointer-events: none; letter-spacing: 0.05em;">
-      v0.3.4
+      v0.3.5
     </div>
 
     <a href="https://x.com/KiyuUre" target="_blank" rel="noopener noreferrer" class="home-x-link" title="Xを開く">
@@ -1247,7 +1247,7 @@
     <div class="settings-title">プレイ履歴</div>
     
     <div id="history-count" style="text-align: right; color: var(--mist); font-size: 0.85rem; margin-top: 10px; margin-bottom: 5px; width: 100%; max-width: 800px; font-weight: 500;">
-      履歴件数: <span id="current-history-count" style="font-weight: bold; color: var(--paper);">0</span> / 50 件
+      履歴件数: <span id="current-history-count" style="font-weight: bold; color: var(--paper);">0</span> / 200 件
     </div>
       
     <div class="card" style="margin-top: 1rem; background: var(--ink-light); padding: 1rem; overflow: visible;">
@@ -2309,10 +2309,23 @@ if (hasImage) {
     let currentHistory = JSON.parse(localStorage.getItem('typing-play-history') || '[]');
     currentHistory.unshift(newRecord);
 
-    if (currentHistory.length > 50) {
-      currentHistory = currentHistory.slice(0, 50);
+    if (currentHistory.length > 200) {
+      currentHistory = currentHistory.slice(0, 200);
     }
-localStorage.setItem('typing-play-history', JSON.stringify(currentHistory));
+
+    // 💡 容量超過対策：保存に失敗した場合は古い履歴を削減して再試行する
+    const saveHistory = (data) => {
+      try {
+        localStorage.setItem('typing-play-history', JSON.stringify(data));
+        return true;
+      } catch (e) {
+        if (e.name === 'QuotaExceededError' && data.length > 10) {
+          return saveHistory(data.slice(0, Math.floor(data.length * 0.8)));
+        }
+        return false;
+      }
+    };
+    saveHistory(currentHistory);
 
     // 💡 5. ベスト記録の保存・更新（古いコードの残骸を一掃して綺麗にしました！）
     const savedBests = JSON.parse(localStorage.getItem('typing-best-records') || '{}');
