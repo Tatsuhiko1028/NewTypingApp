@@ -1103,7 +1103,7 @@
     </div>
     
     <div style="position: absolute; right: 28px; bottom: 68px; font-size: 0.7rem; color: var(--mist); font-family: 'Share Tech Mono', monospace; opacity: 0.6; pointer-events: none; letter-spacing: 0.05em;">
-      v0.3.6
+      v0.3.5
     </div>
 
     <a href="https://x.com/KiyuUre" target="_blank" rel="noopener noreferrer" class="home-x-link" title="Xを開く">
@@ -1519,11 +1519,13 @@ window.uploadGameDataOnEnd = async function(tName, aName, qList, fp) {
       const roomRef = ref(db, `shared_rooms/${fp}`);
 
       // 💡 二重圧縮（compressImageToMini）を外し、綺麗な状態のまま保存
-      const cleanKanjiList = qList.map(item => ({
-        kanji: item.kanji,
-        reading: item.reading,
-        image: item.image
-      }));
+const cleanKanjiList = qList.map(item => {
+        return {
+          kanji: (item && 'kanji' in item && item.kanji) ? item.kanji : '',
+          reading: (item && 'reading' in item && item.reading) ? item.reading : '',
+          image: (item && 'image' in item && item.image) ? item.image : ''
+        };
+      });
 
       await set(roomRef, {
         templateName: tName || '無題のお題',
