@@ -1721,6 +1721,12 @@ let playedHashId = '';
 
 window.updateActiveHashId = function() {
   currentActiveHashId = window.generateHashId(templateName, authorName, kanjiList);
+  
+  // 💡 追加：ハッシュが計算・更新された瞬間に、裏側でこっそりクラウドに保存しておく（最強の事故防止）
+  if (window.uploadGameDataOnEnd && kanjiList.length > 0) {
+    window.uploadGameDataOnEnd(templateName, authorName, kanjiList, currentActiveHashId)
+      .catch(e => console.error("裏側アップロードエラー:", e));
+  }
 };
 
 let questionStartTime = 0;
@@ -2262,25 +2268,17 @@ async function endGame(isEscaped = false) {
     const totalQ = (gameQueue && gameQueue.length > 0) ? gameQueue.length : kanjiList.length;
     const sourceList = playedKanjiList && playedKanjiList.length > 0 ? playedKanjiList : kanjiList;
 
-const hasImage = sourceList.some(item => item.image && item.image.startsWith('data:image'));
+const currentFp = playedHashId || currentActiveHashId;
 
-    // 💡 1. 事前に計算・確保しておいたハッシュIDを使用する（毎回計算しないため高速）
-    const currentFp = playedHashId || currentActiveHashId;
-
-    // 💡 2. 画像が含まれていれば、ハッシュ値を元にクラウドバックアップを確認・実行する
-if (hasImage) {
-      currentCloudId = currentFp; // IDはすでに確定しているので待つ必要なし！
-      if (window.uploadGameDataOnEnd) {
-        // await を削除して、画面をフリーズさせずにバックグラウンドでアップロードを走らせます
-        window.uploadGameDataOnEnd(
-          playedTemplateName || templateName,
-          playedAuthorName || authorName,
-          sourceList,
-          currentFp
-        ).catch(e => console.error("裏側アップロードエラー:", e));
-      }
-    } else {
-      currentCloudId = ''; 
+    // 💡 2. 画像の有無に関わらず、ゲーム終了時は常に最新のハッシュIDでバックアップを確保する
+    currentCloudId = currentFp; 
+    if (window.uploadGameDataOnEnd && sourceList.length > 0) {
+      window.uploadGameDataOnEnd(
+        playedTemplateName || templateName,
+        playedAuthorName || authorName,
+        sourceList,
+        currentFp
+      ).catch(e => console.error("裏側アップロードエラー:", e));
     }
 
     // 💡 3. 履歴に保存するための軽量なリスト（画像を除外したもの）を作成
