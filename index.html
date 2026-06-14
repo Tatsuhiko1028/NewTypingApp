@@ -1103,7 +1103,7 @@
     </div>
     
     <div style="position: absolute; right: 28px; bottom: 68px; font-size: 0.7rem; color: var(--mist); font-family: 'Share Tech Mono', monospace; opacity: 0.6; pointer-events: none; letter-spacing: 0.05em;">
-      v0.3.8
+      v0.3.9
     </div>
 
     <a href="https://x.com/KiyuUre" target="_blank" rel="noopener noreferrer" class="home-x-link" title="Xを開く">
@@ -1140,16 +1140,22 @@
         <div class="score-unit">秒</div>
       </div>
     </div>
-    <div id="result-best-banner" style="display:none; flex-direction:column; align-items:center; gap:0.2rem; padding:0.6rem 1.4rem; background:#f0faf4; border:1.5px solid #34c759; border-radius:10px; margin-top:-0.2rem;">
-      <div style="font-size:0.78rem; font-weight:700; letter-spacing:0.15em; color:#1c7c3a; text-transform:uppercase;">&#127942; ベスト記録更新！</div>
-      <div id="result-best-detail" style="font-size:0.82rem; color:#1c7c3a; font-family:'Share Tech Mono',monospace;"></div>
+<div id="result-best-banner" style="display:none; flex-direction:column; align-items:center; gap:0.3rem; margin-top:0.8rem;">
+      <div style="font-size:0.9rem; font-weight:700; letter-spacing:0.1em; color:var(--paper);">
+        ベスト記録更新！
+      </div>
+      <div id="result-best-detail" style="font-size:0.75rem; color:var(--mist);"></div>
     </div>
-    <div id="result-first-banner" style="display:none; padding:0.5rem 1.4rem; background:#fff8ec; border:1.5px solid #ff9f0a; border-radius:10px; margin-top:-0.2rem;">
-      <div style="font-size:0.82rem; font-weight:700; color:#b56a00; letter-spacing:0.1em;">&#11088; このお題の初クリア！</div>
+    
+    <div id="result-first-banner" style="display:none; text-align:center; margin-top:0.8rem;">
+      <div style="font-size:0.9rem; font-weight:700; letter-spacing:0.1em; color:var(--paper);">
+        このお題の初クリア！
+      </div>
     </div>
-    <div id="result-current-best" style="display:none; flex-direction:column; align-items:center; gap:0.15rem; padding:0.5rem 1.2rem; background:#f5f5f7; border:1px solid #d2d2d7; border-radius:10px; margin-top:-0.2rem;">
-      <div style="font-size:0.72rem; letter-spacing:0.12em; color:#6e6e73; text-transform:uppercase; font-weight:600;">現在のベスト記録</div>
-      <div id="result-current-best-score" style="font-size:1.1rem; font-family:'Share Tech Mono',monospace; color:var(--paper); font-weight:700;"></div>
+    
+    <div id="result-current-best" style="display:none; flex-direction:row; justify-content:center; align-items:baseline; gap:0.5rem; margin-top:0.8rem;">
+      <span style="font-size:0.8rem; color:var(--mist);">現在のベスト記録</span>
+      <span id="result-current-best-score" style="font-size:1.1rem; font-family:'Share Tech Mono',monospace; color:var(--paper); font-weight:700;"></span>
     </div>
 
     <div class="sep" style="margin:0 auto;"></div>
@@ -2372,8 +2378,9 @@ const currentFp = playedHashId || currentActiveHashId;
     // update: 更新あり ('first' | 'improved' | 'same')、null=ベスト記録自体がないお題
     let bestUpdateInfo = null;
 
-    const hasPrevRecord = !!savedBests[currentFp] && !!savedBests[currentFp].bestItem;
-    const prevBestScore = hasPrevRecord ? savedBests[currentFp].bestScore : null;
+const hasPrevRecord = !!savedBests[currentFp] && !!savedBests[currentFp].bestItem;
+    // 💡 修正：古いバージョンのデータ（文字列）が混ざっていてもエラーにならないよう、確実に数値(Number)に変換する
+    const prevBestScore = hasPrevRecord ? Number(savedBests[currentFp].bestScore) : null;
 
     if (!isEscaped) {
       const currentScore = parseFloat(newRecord.score);
@@ -2560,11 +2567,13 @@ lastResultData = {
     if (info.update === 'first') {
       // 初クリア：初クリアバナーのみ（現在のベストは今の記録なので省略）
       firstBanner.style.display = 'block';
-    } else if (info.update === 'improved') {
+} else if (info.update === 'improved') {
       // 記録更新（短縮あり）：更新バナーを表示
       const prevStr = info.prevScore.toFixed(1);
       const impStr = info.improvement.toFixed(1);
-      bestDetail.textContent = `前回ベスト ${prevStr}秒  →  ${impStr}秒短縮`;
+      const currentStr = info.currentBest.toFixed(1); // 💡 追加：今回のベスト記録
+      // 💡 修正：「2.6秒 → 2.2秒(0.4秒短縮)」の形式に変更
+      bestDetail.textContent = `${prevStr}秒 → ${currentStr}秒(${impStr}秒短縮)`; 
       bestBanner.style.display = 'flex';
     } else {
       // 更新なし（同タイム・遅い・RETIRE）：現在のベスト記録パネルを表示
@@ -3497,10 +3506,20 @@ function toggleSoundSetting(checked) {
 window.addEventListener('keydown', function(e) {
   if (e.key === 'Escape') {
     const modal = document.getElementById('image-preview-modal');
+    // ① 画像プレビューが開いている時は、それを閉じるのを優先する
     if (modal && modal.style.display === 'flex') {
       closePreviewModal();
       e.preventDefault();  
       e.stopPropagation();  
+      return; 
+    }
+
+    // 💡 ② 追加：設定画面または履歴画面が開いている時にESCを押すとホームに戻る
+    const activeScreen = document.querySelector('.screen.active');
+    if (activeScreen && (activeScreen.id === 'settings-screen' || activeScreen.id === 'history-screen')) {
+      showScreen('home-screen');
+      e.preventDefault();
+      e.stopPropagation();
     }
   }
 
@@ -3587,8 +3606,8 @@ bestTargets.forEach(({ fp, name, author, bestScore, bestItem, playCount, validCo
             ${dateText ? `${dateText} ｜ ` : ''}ID: <span style="font-family:'Share Tech Mono',monospace; letter-spacing:0;">${fp}</span> ｜ 問題数: ${totalQ}問${penaltyStr} ｜ ミス: ${missText}
           </div>
         </div>
-        <div class="history-item-right">
-          <div class="history-item-score">${bestScore.toFixed(1)}秒</div>
+<div class="history-item-right">
+          <div class="history-item-score">${Number(bestScore).toFixed(1)}秒</div>
           ${btnHtml}
         </div>
       `;
