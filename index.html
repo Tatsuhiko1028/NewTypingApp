@@ -389,6 +389,42 @@
     75% { transform: translateX(4px); }
   }
 
+  /* 文字入力モード（ひらがな未設定のお題用） */
+  .text-answer-area {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+    margin-top: 0.3rem;
+  }
+  .text-answer-input {
+    width: min(90%, 480px);
+    font-size: 2.2rem;
+    font-weight: 700;
+    font-family: 'Noto Serif JP', serif;
+    text-align: center;
+    color: #1d1d1f;
+    border: none;
+    border-bottom: 3px solid var(--paper);
+    outline: none;
+    background: transparent;
+    padding: 6px 8px;
+  }
+  .text-answer-input.error {
+    border-bottom-color: var(--wrong);
+    animation: shake 0.2s ease;
+  }
+  .text-answer-hint {
+    margin-top: 0.6rem;
+    font-size: 0.75rem;
+    color: var(--mist);
+    text-align: center;
+    opacity: 0;
+    transition: opacity 0.5s ease;
+  }
+  .text-answer-hint.visible {
+    opacity: 1;
+  }
+
   .hint-bar {
     margin-top: 0.6rem;
     font-size: 0.75rem;
@@ -1103,7 +1139,7 @@
     </div>
     
     <div style="position: absolute; right: 28px; bottom: 68px; font-size: 0.7rem; color: var(--mist); font-family: 'Share Tech Mono', monospace; opacity: 0.6; pointer-events: none; letter-spacing: 0.05em;">
-      v0.3.9
+      v0.4.0
     </div>
 
     <a href="https://x.com/KiyuUre" target="_blank" rel="noopener noreferrer" class="home-x-link" title="Xを開く">
@@ -1129,6 +1165,10 @@
     <div class="typing-area">
       <div class="input-display" id="input-display"></div>
       <div class="hint-bar" id="hint-bar">Enterキー → 読みを表示（+5秒ペナルティ）</div>
+      <div class="text-answer-area" id="text-answer-area" style="display:none;">
+        <input type="text" id="text-answer-input" class="text-answer-input" placeholder="" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+      </div>
+      <div class="text-answer-hint" id="text-answer-hint" style="display:none;">文字を入力して Enterキー で決定</div>
     </div>
   </div>
 
@@ -1398,7 +1438,7 @@ const urlParams = new URLSearchParams(window.location.search);
             const data = snapshot;
             const list = data.kanji || data;
             if (Array.isArray(list)) {
-              kanjiList = list.filter(item => item.reading && (item.kanji || item.image));
+              kanjiList = list.filter(item => (item.reading && (item.kanji || item.image)) || (!item.reading && item.image && item.kanji)); // 💡 ひらがな未設定＋画像＋お題のみの「文字入力モード」問題も許可
               saveKanjiList();
               applyImportedData(data);
               showToast(`「${templateName}」を読み込みました`); 
@@ -1758,6 +1798,16 @@ let isFirstKeyStroke = true;
 let currentQuestionMissCount = 0; 
 let lastActiveTime = 0; 
 let hintTimeout = null; 
+let currentIsTextMode = false; // 💡 追加：ひらがな未設定＋画像＋お題のみのお題で「文字入力モード」を使うためのフラグ
+
+// 💡 追加：写真とお題（表示文字）のみが設定され、ひらがなが未設定の問題かどうかを判定
+function isTextInputQuestion(item) {
+  if (!item) return false;
+  const hasImage = !!item.image && item.image !== "EXTERNAL_IMAGE";
+  const hasKanjiText = !!item.kanji && item.kanji !== '（画像問題）';
+  const hasReading = !!item.reading && item.reading.trim().length > 0;
+  return hasImage && hasKanjiText && !hasReading;
+}
 
 let currentActionHistoryData = null;
 
@@ -2057,6 +2107,21 @@ playedTemplateName = templateName;
 
 function resetHintTimer() {
   clearTimeout(hintTimeout);
+
+  if (currentIsTextMode) {
+    // 💡 文字入力モード：入力操作ヒント（文字を入力してEnterで決定）の表示制御
+    const textHint = document.getElementById('text-answer-hint');
+    if (textHint) textHint.classList.remove('visible');
+
+    if (!hintShown) {
+      hintTimeout = setTimeout(() => {
+        const th = document.getElementById('text-answer-hint');
+        if (th && !hintShown) th.classList.add('visible');
+      }, 3000);
+    }
+    return;
+  }
+
   const hintBar = document.getElementById('hint-bar');
   if (hintBar) hintBar.classList.remove('visible');
   
@@ -2088,10 +2153,38 @@ function loadQuestion(idx) {
   currentTyped = '';
   hintShown = false;
   
-  resetHintTimer();
-  
-  currentValidOptions = kanaToRomajiOptions(item.reading);
-  currentDisplayOption = currentValidOptions[0] || item.reading;
+  currentIsTextMode = isTextInputQuestion(item);
+
+  const inputDisplayEl = document.getElementById('input-display');
+  const hintBarEl = document.getElementById('hint-bar');
+  const textAnswerAreaEl = document.getElementById('text-answer-area');
+  const textAnswerInputEl = document.getElementById('text-answer-input');
+  const textAnswerHintEl = document.getElementById('text-answer-hint');
+
+  if (currentIsTextMode) {
+    // 文字入力モード：ローマ字表示を隠し、テキスト入力欄を表示
+    inputDisplayEl.style.display = 'none';
+    hintBarEl.style.display = 'none';
+    hintBarEl.classList.remove('visible');
+    textAnswerAreaEl.style.display = 'flex';
+    textAnswerHintEl.style.display = 'block';
+    textAnswerHintEl.classList.remove('visible'); // 💡 修正：まずは非表示にし、数秒無入力の場合のみ表示する
+    textAnswerInputEl.value = '';
+    textAnswerInputEl.classList.remove('error');
+    setTimeout(() => textAnswerInputEl.focus(), 50);
+
+    resetHintTimer();
+  } else {
+    inputDisplayEl.style.display = 'flex';
+    hintBarEl.style.display = 'block';
+    textAnswerAreaEl.style.display = 'none';
+    textAnswerHintEl.style.display = 'none';
+
+    resetHintTimer();
+
+    currentValidOptions = kanaToRomajiOptions(item.reading);
+    currentDisplayOption = currentValidOptions[0] || item.reading;
+  }
   
   const stageArea = document.getElementById('kanji-stage-area');
   stageArea.innerHTML = ''; 
@@ -2127,7 +2220,9 @@ function loadQuestion(idx) {
   document.getElementById('progress-current').textContent = idx;
   document.getElementById('progress-bar').style.width = ((idx / gameQueue.length) * 100) + '%';
   
-  renderInputDisplay();
+  if (!currentIsTextMode) {
+    renderInputDisplay();
+  }
 }
 
 function renderInputDisplay() {
@@ -2174,6 +2269,10 @@ function onKeyDown(e) {
     }
     return;
   }
+
+  // 💡 文字入力モード中は、通常のローマ字入力処理（Enterヒント表示含む）を行わない
+  // （Enterによる解答確定・IME変換等は text-answer-input 側の専用ハンドラで処理する）
+  if (currentIsTextMode) return;
 
   if (e.key === 'Enter') { 
     if (isFirstKeyStroke) {
@@ -2253,6 +2352,95 @@ function flashError() {
   }
 }
 
+// 💡 追加：文字入力モード（ひらがな未設定のお題）の解答処理
+function flashTextError() {
+  const el = document.getElementById('text-answer-input');
+  if (el) {
+    el.classList.add('error');
+    setTimeout(() => el.classList.remove('error'), 300);
+  }
+}
+
+function submitTextAnswer() {
+  const item = gameQueue[currentIndex];
+  const inputEl = document.getElementById('text-answer-input');
+  if (!item || !inputEl) return;
+
+  const typed = inputEl.value.trim();
+  if (typed.length === 0) return;
+
+  if (typed === item.kanji) {
+    playSE(SE.allCorrect);
+
+    const questionDuration = elapsedTime - (questionStartTime || 0);
+    timeRecords.push({
+      kanji: item.kanji,
+      reading: item.reading || item.kanji,
+      time: questionDuration,
+      miss: currentQuestionMissCount,
+      originalIndex: item.originalIndex,
+      usedHint: false
+    });
+
+    questionStartTime = elapsedTime;
+    currentQuestionMissCount = 0;
+    inputEl.value = '';
+    advanceQuestion();
+  } else {
+    flashTextError();
+    playSE(SE.keyWrong);
+    missCount++;
+    currentQuestionMissCount++;
+    inputEl.select();
+  }
+}
+
+// 💡 追加：text-answer-input 専用のキーイベント（Enter確定・IME変換に対応）
+window.addEventListener('DOMContentLoaded', () => {
+  const textAnswerInputEl = document.getElementById('text-answer-input');
+  if (!textAnswerInputEl) return;
+
+  textAnswerInputEl.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      e.stopPropagation(); // 💡 document側のonKeyDownとの二重発火を防止
+      const modal = document.getElementById('image-preview-modal');
+      if (modal && modal.style.display === 'flex') {
+        closePreviewModal();
+      } else {
+        endGame(true);
+      }
+      return;
+    }
+    // IME変換確定のEnterでは解答判定を行わない（isComposingで判定）
+    if (e.key === 'Enter' && !e.isComposing) {
+      e.preventDefault();
+
+      if (e.shiftKey) {
+        // 💡 追加：Shift+Enterでペナルティ付きの答え表示
+        if (isFirstKeyStroke) {
+          isFirstKeyStroke = false;
+          startTimer();
+          questionStartTime = elapsedTime;
+        }
+        showHint();
+        return;
+      }
+
+      submitTextAnswer();
+    }
+  });
+
+  textAnswerInputEl.addEventListener('input', () => {
+    if (isFirstKeyStroke) {
+      isFirstKeyStroke = false;
+      startTimer();
+      questionStartTime = elapsedTime;
+    }
+    // 💡 追加：入力があるたびにヒント表示タイマーをリセットする
+    resetHintTimer();
+  });
+});
+
 function showHint() {
   if (hintShown) return;
   hintShown = true;
@@ -2261,13 +2449,21 @@ function showHint() {
   updateTimerDisplay();
   
   clearTimeout(hintTimeout);
-  const hintBar = document.getElementById('hint-bar');
-  if (hintBar) hintBar.classList.remove('visible');
-  
-  document.getElementById('reading-hint').textContent = gameQueue[currentIndex].reading;
+
+  // 💡 修正：文字入力モードの場合は「正しい答え（item.kanji）」を、通常モードは「読み」を表示する
+  const revealText = currentIsTextMode ? gameQueue[currentIndex].kanji : gameQueue[currentIndex].reading;
+  document.getElementById('reading-hint').textContent = revealText;
   document.getElementById('reading-hint').classList.add('visible');
-  
-  renderInputDisplay();
+
+  if (currentIsTextMode) {
+    const textHint = document.getElementById('text-answer-hint');
+    if (textHint) textHint.classList.remove('visible');
+  } else {
+    const hintBar = document.getElementById('hint-bar');
+    if (hintBar) hintBar.classList.remove('visible');
+    renderInputDisplay();
+  }
+
   showToast('ヒント表示 +5秒ペナルティ');
 }
 
@@ -2463,8 +2659,11 @@ const hasPrevRecord = !!savedBests[currentFp] && !!savedBests[currentFp].bestIte
     );
     const timeLabel = record ? `${record.time.toFixed(1)}秒` : '-';
 
+    // 💡 修正：ひらがな未設定（文字入力モード）の場合は、正しい答え（item.kanji）を「読み」欄に表示する
+    const effectiveReadingText = item.reading || item.kanji || '';
+
     const kanjiLen = item.kanji === '（画像問題）' ? 0 : item.kanji.length;
-    const readLen = item.reading ? item.reading.length : 0;
+    const readLen = effectiveReadingText.length;
 
     let isStacked = kanjiLen > 6 || readLen > 10 || (kanjiLen + readLen) > 12;
     let isWide = kanjiLen > 10 || readLen > 18;
@@ -2502,7 +2701,7 @@ if (item.image && item.image !== "EXTERNAL_IMAGE") {
 
     const readingSpan = document.createElement('span');
     readingSpan.className = 'r-reading';
-    readingSpan.textContent = item.reading;
+    readingSpan.textContent = effectiveReadingText;
     leftGroup.appendChild(readingSpan);
 
     div.appendChild(leftGroup);
@@ -2596,7 +2795,10 @@ function renderKanjiList() {
   }
   kanjiList.forEach((item, i) => {
     const opts = kanaToRomajiOptions(item.reading);
-    const romajiPreview = opts.slice(0, 3).join(' / ');
+    const isTextMode = isTextInputQuestion(item);
+    const romajiPreview = isTextMode
+      ? '⌨️ 文字入力モード（ひらがな未設定：正しい文字を直接入力）'
+      : opts.slice(0, 3).join(' / ');
     const div = document.createElement('div');
     div.className = 'kanji-item';
     div.style.flexDirection = 'column';
@@ -2680,7 +2882,20 @@ img.onload = function() {
     readingInput.addEventListener('blur', () => {
       readingInput.style.borderBottomColor = 'transparent';
       const val = readingInput.value.trim();
-      if (!val) { showToast('読みは必須です'); readingInput.value = item.reading; return; }
+      if (!val) {
+        // 💡 画像とお題（表示文字）が両方設定されている場合のみ、ひらがな未設定＝文字入力モードとして許可する
+        const canBeTextMode = !!item.image && item.image !== "EXTERNAL_IMAGE" && !!kanjiList[i].kanji && kanjiList[i].kanji !== '（画像問題）';
+        if (canBeTextMode) {
+          kanjiList[i].reading = '';
+          saveKanjiList();
+          romajiPreviewEl.textContent = '⌨️ 文字入力モード（ひらがな未設定：正しい文字を直接入力）';
+          showToast('読みなし：文字入力モードに設定しました');
+          return;
+        }
+        showToast('読みは必須です（画像とお題が両方設定されている場合のみ省略できます）');
+        readingInput.value = item.reading;
+        return;
+      }
       kanjiList[i].reading = val;
       saveKanjiList();
       const newOpts = kanaToRomajiOptions(val);
@@ -2690,7 +2905,7 @@ img.onload = function() {
 
     const romajiPreviewEl = document.createElement('div');
     romajiPreviewEl.style.cssText = 'font-size:0.72rem;color:var(--mist);font-family:"Share Tech Mono",monospace;padding:0 4px;';
-    romajiPreviewEl.textContent = romajiPreview + (opts.length > 3 ? ` 他${opts.length - 3}通り` : '');
+    romajiPreviewEl.textContent = isTextMode ? romajiPreview : (romajiPreview + (opts.length > 3 ? ` 他${opts.length - 3}通り` : ''));
 
     readingWrap.appendChild(readingInput);
     readingWrap.appendChild(romajiPreviewEl);
@@ -2714,8 +2929,11 @@ function addKanji() {
   let kanji = document.getElementById('input-kanji').value.trim();
   const reading = document.getElementById('input-reading').value.trim();
   
-  if (!reading) { 
-    showToast('読み（タイピングの答え）を入力してください'); 
+  // 💡 画像とお題（表示文字）が両方設定されている場合のみ、ひらがな未設定＝文字入力モードとして許可する
+  const canBeTextMode = !!kanji && !!currentUploadedImageBase64;
+
+  if (!reading && !canBeTextMode) { 
+    showToast('読み（タイピングの答え）を入力してください（画像とお題を両方設定した場合は省略できます）'); 
     return; 
   }
   if (!kanji && !currentUploadedImageBase64) { 
@@ -2819,7 +3037,7 @@ function importJSON(event) {
       const list = data.kanji || data;
       if (!Array.isArray(list)) throw new Error('invalid');
       
-      kanjiList = list.filter(item => item.reading && (item.kanji || item.image));
+      kanjiList = list.filter(item => (item.reading && (item.kanji || item.image)) || (!item.reading && item.image && item.kanji)); // 💡 ひらがな未設定＋画像＋お題のみの「文字入力モード」問題も許可
       localStorage.setItem('kanji-dojo-list', JSON.stringify(kanjiList));
       
       templateName = data.templateName || data.template || '無題のお題';
@@ -3202,7 +3420,8 @@ async function saveResultAsImage() {
   for (let i = 0; i < playedKanjiList.length; i++) {
     const item = playedKanjiList[i];
     const kanjiLen = item.kanji === '（画像問題）' ? 0 : item.kanji.length;
-    const readLen = item.reading ? item.reading.length : 0;
+    // 💡 修正：ひらがな未設定（文字入力モード）の場合は、正しい答え（item.kanji）の文字数で計算する
+    const readLen = (item.reading || item.kanji || '').length;
     
     let isStacked = kanjiLen > 6 || readLen > 10 || (kanjiLen + readLen) > 12;
     let isWide = kanjiLen > 10 || readLen > 18;
@@ -3297,10 +3516,13 @@ if (item.image && item.image !== "EXTERNAL_IMAGE") {
         const readingStartX_img = itemX + 15 + thumbWidth + 12;
         const readingAvailW_img = itemW - (readingStartX_img - itemX) - paddingRight - timeWidth;
 
+        // 💡 修正：ひらがな未設定（文字入力モード）の場合は、正しい答え（item.kanji）を表示する
+        const effectiveReadingText_img = item.reading || item.kanji || '';
+
         ctx.font = `${readingFontSize}px -apple-system, sans-serif`;
         ctx.fillStyle = '#86868b';
         ctx.textBaseline = 'middle';
-        ctx.fillText(truncateCanvas(ctx, item.reading, readingAvailW_img), readingStartX_img, itemY + rowHeight / 2);
+        ctx.fillText(truncateCanvas(ctx, effectiveReadingText_img, readingAvailW_img), readingStartX_img, itemY + rowHeight / 2);
 
         if (timeText) {
           ctx.textAlign = 'right';
@@ -3325,7 +3547,8 @@ if (item.image && item.image !== "EXTERNAL_IMAGE") {
 
     } else {
       const kanjiText = item.kanji === '（画像問題）' ? '' : item.kanji;
-      const readingText = item.reading;
+      // 💡 修正：ひらがな未設定（文字入力モード）の場合は、正しい答え（item.kanji）を表示する
+      const readingText = item.reading || item.kanji || '';
 
       if (!isStacked) {
         const midY = itemY + rowHeight / 2;
