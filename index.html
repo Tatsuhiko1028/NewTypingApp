@@ -474,7 +474,8 @@
   }
   .result-stats {
     display: flex;
-    gap: 1.5rem;
+    flex-wrap: wrap;
+    gap: 0.5rem 1.5rem;
     justify-content: center;
     color: var(--mist);
     font-size: 0.85rem;
@@ -1139,7 +1140,7 @@
     </div>
     
     <div style="position: absolute; right: 28px; bottom: 68px; font-size: 0.7rem; color: var(--mist); font-family: 'Share Tech Mono', monospace; opacity: 0.6; pointer-events: none; letter-spacing: 0.05em;">
-      v0.4.1
+      v0.4.2
     </div>
 
     <a href="https://x.com/KiyuUre" target="_blank" rel="noopener noreferrer" class="home-x-link" title="Xを開く">
@@ -1205,6 +1206,7 @@
       <div>ペナルティ <span id="res-penalty">0</span>秒</div>
       <div>ミスタイプ数 <span id="res-miss-count" style="color: var(--wrong); font-weight: bold;">0</span>回</div>
       <div>最長タイム <span id="res-slowest" style="color: var(--wrong); font-weight: bold;">なし</span></div>
+      <div id="res-play-count-row" style="display:none;">みんなのクリア回数 <span id="res-play-count">-</span>回</div>
     </div>
     
     <div class="result-btn-row">
@@ -1337,7 +1339,7 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-app.js";
   // 🎯【修正】中身に「set」を追加して、データベースへの書き込み命令を使えるようにします
-  import { getDatabase, ref, push, set, get, child } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-database.js";
+  import { getDatabase, ref, push, set, get, child, update, increment } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-database.js";
   // たつひこさんのFirebaseプロジェクト設定値
   const firebaseConfig = {
     apiKey: "AIzaSyB3iLV7yh9AqkBbem61ExC10lmwLawBUF4",
@@ -1563,6 +1565,37 @@ const urlParams = new URLSearchParams(window.location.search);
     const dbRef = ref(db);
     const snapshot = await get(child(dbRef, `shared_rooms/${roomId}`));
     return snapshot.exists() ? snapshot.val() : null;
+  };
+
+// 💡 追加：ハッシュ値ごとの「全ユーザー合計プレイ回数」を記録する
+// increment()を使うことで、複数ユーザーが同時にクリアしても正確にカウントされる（サーバー側でアトミックに加算）
+window.incrementPlayCount = async function(fp) {
+    if (!fp) return null;
+    try {
+      const statsRef = ref(db, `play_stats/${fp}`);
+      await update(statsRef, { count: increment(1) });
+
+      // 加算後の最新値を取得して画面表示に使う
+      const dbRef = ref(db);
+      const snapshot = await get(child(dbRef, `play_stats/${fp}/count`));
+      return snapshot.exists() ? snapshot.val() : null;
+    } catch (err) {
+      console.error("プレイ回数の記録に失敗しました:", err);
+      return null;
+    }
+  };
+
+// 💡 追加：表示のみ（加算しない）でプレイ回数を取得する
+window.getPlayCount = async function(fp) {
+    if (!fp) return null;
+    try {
+      const dbRef = ref(db);
+      const snapshot = await get(child(dbRef, `play_stats/${fp}/count`));
+      return snapshot.exists() ? snapshot.val() : null;
+    } catch (err) {
+      console.error("プレイ回数の取得に失敗しました:", err);
+      return null;
+    }
   };
 
 // 💡 修正：ハッシュ値(fp)を受け取り、クラウドに存在しない時だけ保存する
@@ -2482,6 +2515,7 @@ function advanceQuestion() {
 }
 
 async function endGame(isEscaped = false) {
+  let globalPlayCount = null; // 💡 追加：try節の外で宣言し、リザルト表示時にも参照できるようにする
   try {
     const now = new Date();
     const dateStr = `${now.getMonth() + 1}/${now.getDate()} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
@@ -2500,6 +2534,14 @@ const currentFp = playedHashId || currentActiveHashId;
         sourceList,
         currentFp
       ).catch(e => console.error("裏側アップロードエラー:", e));
+    }
+
+    // 💡 追加：クリアした場合（リタイアは除く）のみ、このハッシュ値の「全ユーザー合計プレイ回数」を+1する
+    if (!isEscaped && window.incrementPlayCount && currentFp) {
+      globalPlayCount = await window.incrementPlayCount(currentFp).catch(e => {
+        console.error("プレイ回数の記録に失敗しました:", e);
+        return null;
+      });
     }
 
     // 💡 3. 履歴に保存するための軽量なリスト（画像を除外したもの）を作成
@@ -2522,7 +2564,8 @@ const currentFp = playedHashId || currentActiveHashId;
       playedKanjiList: cleanKanjiList,
       cloudId: currentCloudId || currentFp,
       date: dateStr,
-      fp: currentFp
+      fp: currentFp,
+      globalPlayCount: globalPlayCount
     };
 
     let currentHistory = JSON.parse(localStorage.getItem('typing-play-history') || '[]');
@@ -2618,6 +2661,18 @@ const hasPrevRecord = !!savedBests[currentFp] && !!savedBests[currentFp].bestIte
   document.getElementById('res-total').textContent = gameQueue.length;
   document.getElementById('res-penalty').textContent = penaltySeconds;
   document.getElementById('res-miss-count').textContent = missCount;
+
+  // 💡 追加：全ユーザー合計プレイ回数の表示（クリア時のみ・取得できた場合のみ表示）
+  const playCountRow = document.getElementById('res-play-count-row');
+  const playCountEl = document.getElementById('res-play-count');
+  if (playCountRow && playCountEl) {
+    if (!isEscaped && globalPlayCount !== null && globalPlayCount !== undefined) {
+      playCountEl.textContent = globalPlayCount;
+      playCountRow.style.display = 'block';
+    } else {
+      playCountRow.style.display = 'none';
+    }
+  }
 
   const scoreBig = document.getElementById('result-score');
   const scoreUnit = document.querySelector('.score-unit');
