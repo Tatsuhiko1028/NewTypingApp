@@ -1139,7 +1139,7 @@
     </div>
     
     <div style="position: absolute; right: 28px; bottom: 68px; font-size: 0.7rem; color: var(--mist); font-family: 'Share Tech Mono', monospace; opacity: 0.6; pointer-events: none; letter-spacing: 0.05em;">
-      v0.4.0
+      v0.4.1
     </div>
 
     <a href="https://x.com/KiyuUre" target="_blank" rel="noopener noreferrer" class="home-x-link" title="Xを開く">
@@ -1780,13 +1780,14 @@ let currentActiveHashId = '';
 let playedHashId = '';
 
 window.updateActiveHashId = function() {
+  // 💡 修正：ここでは「ハッシュ値の再計算」のみを行う（ローカル処理のみで軽量）
+  // 以前はここでFirebaseへの自動アップロードも行っていたが、
+  // 編集のたび（フィールドのフォーカスが外れる度）に呼ばれるため、
+  // 編集１回ごとに新しいハッシュ＝新しい部屋がFirebaseに作られ、
+  // 画像データが何度も丸ごとアップロードされてしまい容量を圧迫していた。
+  // クラウドへの保存は「ゲーム終了時（endGame）」と「明示的なURL共有ボタン」の
+  // 2箇所だけで行えば十分なため、ここでは行わない。
   currentActiveHashId = window.generateHashId(templateName, authorName, kanjiList);
-  
-  // 💡 追加：ハッシュが計算・更新された瞬間に、裏側でこっそりクラウドに保存しておく（最強の事故防止）
-  if (window.uploadGameDataOnEnd && kanjiList.length > 0) {
-    window.uploadGameDataOnEnd(templateName, authorName, kanjiList, currentActiveHashId)
-      .catch(e => console.error("裏側アップロードエラー:", e));
-  }
 };
 
 let questionStartTime = 0;
@@ -2073,8 +2074,12 @@ playedTemplateName = templateName;
   playedAuthorName = authorName; 
   playedKanjiList = kanjiList.map((item, index) => ({ ...item, originalIndex: index }));
   
-  // 💡 追加：プレイ開始時のハッシュ値を確保しておく
-  if (!currentActiveHashId) window.updateActiveHashId();
+  // 💡 修正：プレイ開始時は必ず最新のkanjiList内容でハッシュを再計算する
+  // （以前は「currentActiveHashIdが空の時だけ」計算していたため、
+  //  JSONインポート等でハッシュ更新処理を経由せずにお題が変わった場合、
+  //  古いハッシュのままプレイが始まり、リザルトの共有リンクが
+  //  実際にプレイした内容と一致しなくなる不具合があった）
+  window.updateActiveHashId();
   playedHashId = currentActiveHashId;
 
   timeRecords = [];
@@ -2986,6 +2991,9 @@ function clearAllSettings() {
   authorName = '';
   kanjiList = [];
 
+  // 💡 追加：クリア後もハッシュ状態を最新に保つ（ローカル計算のみで軽量）
+  if (typeof window.updateActiveHashId === 'function') window.updateActiveHashId();
+
   localStorage.removeItem('kanji-dojo-template-name');
   localStorage.removeItem('kanji-dojo-author-name');
   localStorage.removeItem('kanji-dojo-list');
@@ -3038,11 +3046,13 @@ function importJSON(event) {
       if (!Array.isArray(list)) throw new Error('invalid');
       
       kanjiList = list.filter(item => (item.reading && (item.kanji || item.image)) || (!item.reading && item.image && item.kanji)); // 💡 ひらがな未設定＋画像＋お題のみの「文字入力モード」問題も許可
-      localStorage.setItem('kanji-dojo-list', JSON.stringify(kanjiList));
       
       templateName = data.templateName || data.template || '無題のお題';
       authorName = data.authorName || data.author || '';
       
+      // 💡 修正：saveKanjiList()を使い、localStorage保存とハッシュ再計算を確実に行う
+      // （以前は localStorage.setItem のみで、ハッシュが更新されずにいた＝共有リンク不具合の原因）
+      saveKanjiList();
       localStorage.setItem('kanji-dojo-template-name', templateName);
       localStorage.setItem('kanji-dojo-author-name', authorName);
       
