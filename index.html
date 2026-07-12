@@ -437,6 +437,77 @@
     opacity: 1;
   }
 
+  /* 💡 追加：クイズモード（四択）の選択肢 */
+  .quiz-choices {
+    display: none;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.8rem;
+    width: 100%;
+    max-width: 480px;
+    margin: 0.5rem auto 0;
+    padding: 0 1rem;
+    box-sizing: border-box;
+  }
+  .quiz-choice-btn {
+    padding: 1.1rem 0.6rem;
+    font-size: 1.1rem;
+    font-weight: 700;
+    font-family: 'Noto Serif JP', serif;
+    border-radius: 14px;
+    border: 2px solid #e5e5ea;
+    background: #ffffff;
+    color: #1d1d1f;
+    cursor: pointer;
+    min-height: 64px;
+    line-height: 1.3;
+    word-break: break-word;
+    transition: transform 0.08s ease, background 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
+    -webkit-tap-highlight-color: transparent;
+    outline: none; /* 💡 修正：タップ/クリック時に縁が黒くなるデフォルトのフォーカス表示を除去 */
+  }
+  .quiz-choice-btn:focus,
+  .quiz-choice-btn:focus-visible {
+    outline: none;
+  }
+  .quiz-choice-btn:active {
+    transform: scale(0.96);
+  }
+  .quiz-choice-btn:disabled {
+    cursor: default;
+  }
+  .quiz-choice-btn.correct {
+    background: #e6f9ee;
+    border-color: var(--correct, #34c759);
+    color: #1c7c3a;
+  }
+  .quiz-choice-btn.wrong {
+    /* 💡 修正：赤色ではなく、薄く（フェード）表示するだけにする */
+    opacity: 0.35;
+  }
+
+  /* 💡 追加：設定画面のモード切り替えボタン */
+  .mode-toggle {
+    display: flex;
+    gap: 0.5rem;
+  }
+  .mode-toggle-btn {
+    flex: 1;
+    padding: 0.65rem 0.5rem;
+    border-radius: 10px;
+    border: 2px solid #e5e5ea;
+    background: #ffffff;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--mist);
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .mode-toggle-btn.active {
+    border-color: var(--paper);
+    background: var(--paper);
+    color: #ffffff;
+  }
+
   /* Progress bar */
   .progress-bar-wrap {
     width: 100%;
@@ -909,6 +980,9 @@
     color: var(--mist);
     font-size: 0.75rem;
     line-height: 1.4;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   
   .history-item-right {
@@ -993,6 +1067,16 @@
     margin-left: 6px;
     vertical-align: middle;
     flex-shrink: 0;
+  }
+
+  .history-item-mode {
+    font-size: 0.7rem;
+    color: var(--mist);
+    font-weight: normal;
+    margin-left: 6px;
+    vertical-align: middle;
+    flex-shrink: 0;
+    white-space: nowrap;
   }
 
   /* ===== ベスト記録まとめ枠 ===== */
@@ -1140,7 +1224,7 @@
     </div>
     
     <div style="position: absolute; right: 28px; bottom: 68px; font-size: 0.7rem; color: var(--mist); font-family: 'Share Tech Mono', monospace; opacity: 0.6; pointer-events: none; letter-spacing: 0.05em;">
-      v0.4.2
+      v0.4.3
     </div>
 
     <a href="https://x.com/KiyuUre" target="_blank" rel="noopener noreferrer" class="home-x-link" title="Xを開く">
@@ -1171,6 +1255,8 @@
       </div>
       <div class="text-answer-hint" id="text-answer-hint" style="display:none;">文字を入力して Enterキー で決定</div>
     </div>
+
+    <div class="quiz-choices" id="quiz-choices"></div>
   </div>
 
   <div id="result-screen" class="screen">
@@ -1221,7 +1307,7 @@
         テンプレート: 未設定
       </h3>
       <div id="result-author-title" style="font-size: 0.8rem; color: var(--mist); border-bottom: 1px solid rgba(0,0,0,0.1); padding-bottom: 0.5rem; margin-bottom: 1rem;">
-        作者: 未設定
+        <span id="result-author-text">作者: 未設定</span><span id="result-mode-text" style="margin-left: 8px;"></span>
       </div>
       <div id="result-kanji-list" style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.8rem; font-size: 0.95rem; grid-auto-flow: row;"></div>
     </div>
@@ -1235,6 +1321,17 @@
       <label class="switch-label">
         <input type="checkbox" id="setting-sound" class="switch-input" checked onchange="toggleSoundSetting(this.checked)">
       </label>
+    </div>
+
+    <div class="card" style="margin-bottom: 1rem; text-align: left; background: var(--ink-light); padding: 1.2rem 1.5rem;">
+      <div style="font-weight: 700; font-size: 0.95rem; margin-bottom: 0.8rem;">プレイモード</div>
+      <div class="mode-toggle" id="mode-toggle-group">
+        <button type="button" class="mode-toggle-btn" id="mode-btn-typing" onclick="setGameMode('typing')">タイピング</button>
+        <button type="button" class="mode-toggle-btn" id="mode-btn-quiz" onclick="setGameMode('quiz')">クイズ（四択）</button>
+      </div>
+      <div style="font-size:0.72rem;color:var(--mist);margin-top:0.6rem;line-height:1.5;">
+        クイズモードでは、スマホでも押しやすい四択形式で出題されます。モードごとに共有用のURLは別々になります。
+      </div>
     </div>
     
     <div class="settings-title" id="settings-title-text">お題設定</div>
@@ -1441,8 +1538,10 @@ const urlParams = new URLSearchParams(window.location.search);
             const list = data.kanji || data;
             if (Array.isArray(list)) {
               kanjiList = list.filter(item => (item.reading && (item.kanji || item.image)) || (!item.reading && item.image && item.kanji)); // 💡 ひらがな未設定＋画像＋お題のみの「文字入力モード」問題も許可
+              // 💡 修正：先にモード・テンプレート名を確定させてから、最後にsaveKanjiList()でハッシュを計算する順序に変更
+              // （逆順だと、直前まで保持していた古いモードでハッシュが計算されてしまう不具合があった）
+              applyImportedData(data, roomId);
               saveKanjiList();
-              applyImportedData(data);
               showToast(`「${templateName}」を読み込みました`); 
             }
           } else {
@@ -1470,8 +1569,8 @@ const urlParams = new URLSearchParams(window.location.search);
             if (snapshot && snapshot.kanji) {
               currentCloudId = historyData[0].cloudId;
               kanjiList = snapshot.kanji; 
+              applyImportedData(snapshot, historyData[0].cloudId);
               saveKanjiList();
-              applyImportedData(snapshot);
               showToast('データを復元しました');
             }
           } catch (err) {
@@ -1517,13 +1616,43 @@ const urlParams = new URLSearchParams(window.location.search);
     }
   }; // 👈 window.firebaseCheckURLParam の閉じカッコです
 
+  // 💡 追加：保存データの mode フィールドに頼らず、ハッシュ値そのものから逆算してモードを判定する。
+  // （古いデータに mode フィールドが無くても、ハッシュ値の生成規則と突き合わせれば確実に判定できる）
+  // window に公開し、classicスクリプト側（importHash等）からも呼べるようにする
+  window.inferModeFromHash = function(roomId, data) {
+    if (!data) return 'typing';
+    const list = data.kanji || data;
+    if (!Array.isArray(list)) return (data.mode === 'quiz') ? 'quiz' : 'typing';
+
+    const tName = data.templateName || data.template || '無題のお題';
+    const aName = data.authorName || data.author || '';
+
+    if (roomId && typeof window.generateHashId === 'function') {
+      const quizHash = window.generateHashId(tName, aName, list, 'quiz');
+      if (quizHash === roomId) return 'quiz';
+      const typingHash = window.generateHashId(tName, aName, list, 'typing');
+      if (typingHash === roomId) return 'typing';
+    }
+    // どちらの再計算とも一致しない場合（お題が編集された等）は、保存されたmodeフィールド→それも無ければtypingにフォールバック
+    return (data.mode === 'quiz') ? 'quiz' : 'typing';
+  }
+
   // UI反映用共通ヘルパー関数
-  window.applyImportedData = function(data) {
+  window.applyImportedData = function(data, roomId) {
     if (!data) return;
 
     // URL共有データの構造に合わせて確実に代入
     templateName = data.templateName || data.template || '無題のお題';
     authorName = data.authorName || data.author || '';
+
+    // 💡 修正：モジュールscript内から直接 gameMode を書き換えるのではなく、
+    // window.setGameMode()（classicスクリプト側で定義・一元管理）を必ず経由するようにする。
+    // これにより「変数が書き換わったように見えて、実際には反映されない」問題を避ける。
+    // また、モード判定は保存データの mode フィールドだけに頼らず、ハッシュ値からも逆算して確定させる。
+    const importedMode = window.inferModeFromHash(roomId, data);
+    if (typeof window.setGameMode === 'function') {
+      window.setGameMode(importedMode);
+    }
     
     localStorage.setItem('kanji-dojo-template-name', templateName);
     localStorage.setItem('kanji-dojo-author-name', authorName);
@@ -1598,8 +1727,8 @@ window.getPlayCount = async function(fp) {
     }
   };
 
-// 💡 修正：ハッシュ値(fp)を受け取り、クラウドに存在しない時だけ保存する
-window.uploadGameDataOnEnd = async function(tName, aName, qList, fp) {
+// 💡 修正：ハッシュ値(fp)を受け取り、クラウドに存在しない時だけ保存する（modeも保存し、共有先で再現できるようにする）
+window.uploadGameDataOnEnd = async function(tName, aName, qList, fp, mode) {
     if (!fp) return '';
     try {
       const existingData = await window.getFirebaseDataById(fp);
@@ -1621,7 +1750,8 @@ const cleanKanjiList = qList.map(item => {
       await set(roomRef, {
         templateName: tName || '無題のお題',
         authorName: aName || '',
-        kanji: cleanKanjiList
+        kanji: cleanKanjiList,
+        mode: mode || 'typing'
       });
       
       return fp;
@@ -1792,9 +1922,13 @@ window.setStartButtonLoading = function(loading) {
 let templateName = localStorage.getItem('kanji-dojo-template-name') || 'デフォルトのお題';
 let authorName = localStorage.getItem('kanji-dojo-author-name') || ''; 
 
+// 💡 追加：プレイモード（'typing' = 従来のタイピングモード / 'quiz' = 四択クイズモード）
+let gameMode = localStorage.getItem('kanji-dojo-game-mode') || 'typing';
+
 let playedTemplateName = ''; 
 let playedAuthorName = '';   
 let playedKanjiList = [];
+let playedGameMode = 'typing'; // 💡 追加：実際にプレイしたときのモードを正確に保持する
 let gameQueue = [];
 let currentIndex = 0;
 let timerInterval = null;
@@ -1823,6 +1957,24 @@ window.updateActiveHashId = function() {
   currentActiveHashId = window.generateHashId(templateName, authorName, kanjiList);
 };
 
+// 💡 追加：プレイモード（タイピング/クイズ）の切り替え
+window.setGameMode = function(mode) {
+  if (mode !== 'typing' && mode !== 'quiz') return;
+  gameMode = mode;
+  localStorage.setItem('kanji-dojo-game-mode', gameMode);
+  window.updateModeToggleUI();
+  // モードが変わるとハッシュ値も変わる（クイズモードのみ）ため再計算する
+  window.updateActiveHashId();
+};
+
+window.updateModeToggleUI = function() {
+  const typingBtn = document.getElementById('mode-btn-typing');
+  const quizBtn = document.getElementById('mode-btn-quiz');
+  if (!typingBtn || !quizBtn) return;
+  typingBtn.classList.toggle('active', gameMode === 'typing');
+  quizBtn.classList.toggle('active', gameMode === 'quiz');
+};
+
 let questionStartTime = 0;
 let timeRecords = [];
 let isGameRetire = false; 
@@ -1833,6 +1985,36 @@ let currentQuestionMissCount = 0;
 let lastActiveTime = 0; 
 let hintTimeout = null; 
 let currentIsTextMode = false; // 💡 追加：ひらがな未設定＋画像＋お題のみのお題で「文字入力モード」を使うためのフラグ
+let quizAnswered = false; // 💡 追加：クイズモードで、今の問題に正解済みかどうか（連打防止）
+
+// 💡 追加：クイズモードにおける「正解の選択肢テキスト」を決定する
+// ・画像が設定されている場合（画像+漢字+読み or 画像+漢字のみ）→ 漢字（表示文字）を正解にする
+// ・画像が設定されていない場合（漢字+読みのみ）→ 読みを正解にする
+function getQuizAnswerText(item) {
+  if (!item) return '';
+  if (item.image) return item.kanji || '';
+  return item.reading || item.kanji || '';
+}
+
+// 💡 追加：正解1つ + 他の問題からランダムに引用したダミー3つ（重複なし）で四択を作る
+function buildQuizChoices(item, pool) {
+  const correct = getQuizAnswerText(item);
+  const seen = new Set([correct]);
+  const wrongCandidates = [];
+
+  const shuffledPool = shuffle(pool.filter(q => q !== item));
+  for (const q of shuffledPool) {
+    const text = getQuizAnswerText(q);
+    if (text && !seen.has(text)) {
+      seen.add(text);
+      wrongCandidates.push(text);
+    }
+    if (wrongCandidates.length >= 3) break;
+  }
+
+  const choices = shuffle([correct, ...wrongCandidates]);
+  return { correct, choices };
+}
 
 // 💡 追加：写真とお題（表示文字）のみが設定され、ひらがなが未設定の問題かどうかを判定
 function isTextInputQuestion(item) {
@@ -1864,6 +2046,7 @@ window.addEventListener('DOMContentLoaded', () => {
   if (inputA) inputA.value = authorName;
 
   updateHomeCount();
+  if (typeof window.updateModeToggleUI === 'function') window.updateModeToggleUI();
 if (typeof window.updateActiveHashId === 'function') window.updateActiveHashId();
 });
 
@@ -1925,7 +2108,7 @@ function playSE(seFunction) {
 
 // ========== UTILS ==========
 // 💡 追加：どこからでも呼び出せるように、ハッシュ生成関数を一番外側に定義します
-window.generateHashId = function(title, author, list) {
+window.generateHashId = function(title, author, list, mode) {
   const details = list.map(q => {
     const kanji = q.kanji || '';
     const reading = q.reading || '';
@@ -1948,7 +2131,23 @@ window.generateHashId = function(title, author, list) {
   for (let i = 0; i < rawStr.length; i++) {
     hash = ((hash << 5) + hash) + rawStr.charCodeAt(i);
   }
-  return (hash >>> 0).toString(16);
+  const baseHashHex = (hash >>> 0).toString(16);
+
+  // 💡 追加：クイズモードの時だけ、ベースのハッシュ値にモード文字列を混ぜて再ハッシュする。
+  // これにより「同じ問題内容でも、タイピングモードとクイズモードで別のハッシュ値（別の共有URL）」になる。
+  // 一方、タイピングモード（modeが指定されない/従来通りの場合）は、
+  // 上記のbaseHashHexをそのまま返すため、既存のお題のハッシュ値は一切変化しない。
+  const effectiveMode = mode || gameMode;
+  if (effectiveMode === 'quiz') {
+    const modeStr = baseHashHex + '_quiz';
+    let h2 = 5381;
+    for (let i = 0; i < modeStr.length; i++) {
+      h2 = ((h2 << 5) + h2) + modeStr.charCodeAt(i);
+    }
+    return (h2 >>> 0).toString(16);
+  }
+
+  return baseHashHex;
 };
 
 function saveKanjiList() {
@@ -1969,7 +2168,10 @@ localStorage.setItem('kanji-dojo-list', JSON.stringify(cleanList));
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
-  if (id === 'settings-screen') renderKanjiList();
+  if (id === 'settings-screen') {
+    renderKanjiList();
+    if (typeof window.updateModeToggleUI === 'function') window.updateModeToggleUI();
+  }
   if (id === 'home-screen') updateHomeCount();
   if (id === 'history-screen') renderHistoryList(); 
 }
@@ -2106,6 +2308,7 @@ function startGame() {
 playedTemplateName = templateName;
   playedAuthorName = authorName; 
   playedKanjiList = kanjiList.map((item, index) => ({ ...item, originalIndex: index }));
+  playedGameMode = gameMode; // 💡 追加：このプレイで使うモードを固定化する
   
   // 💡 修正：プレイ開始時は必ず最新のkanjiList内容でハッシュを再計算する
   // （以前は「currentActiveHashIdが空の時だけ」計算していたため、
@@ -2190,38 +2393,63 @@ function loadQuestion(idx) {
   const item = gameQueue[idx];
   currentTyped = '';
   hintShown = false;
-  
-  currentIsTextMode = isTextInputQuestion(item);
+  quizAnswered = false;
 
   const inputDisplayEl = document.getElementById('input-display');
   const hintBarEl = document.getElementById('hint-bar');
   const textAnswerAreaEl = document.getElementById('text-answer-area');
   const textAnswerInputEl = document.getElementById('text-answer-input');
   const textAnswerHintEl = document.getElementById('text-answer-hint');
+  const quizChoicesEl = document.getElementById('quiz-choices');
+  const typingAreaEl = document.querySelector('.typing-area');
 
-  if (currentIsTextMode) {
-    // 文字入力モード：ローマ字表示を隠し、テキスト入力欄を表示
-    inputDisplayEl.style.display = 'none';
-    hintBarEl.style.display = 'none';
-    hintBarEl.classList.remove('visible');
-    textAnswerAreaEl.style.display = 'flex';
-    textAnswerHintEl.style.display = 'block';
-    textAnswerHintEl.classList.remove('visible'); // 💡 修正：まずは非表示にし、数秒無入力の場合のみ表示する
-    textAnswerInputEl.value = '';
-    textAnswerInputEl.classList.remove('error');
-    setTimeout(() => textAnswerInputEl.focus(), 50);
+  if (gameMode === 'quiz') {
+    // 💡 追加：クイズモード（四択）。タイピング用の入力欄は完全に隠す
+    currentIsTextMode = false;
+    clearTimeout(hintTimeout);
+    typingAreaEl.style.display = 'none';
+    quizChoicesEl.style.display = 'grid';
 
-    resetHintTimer();
+    const { choices } = buildQuizChoices(item, gameQueue);
+    quizChoicesEl.innerHTML = '';
+    choices.forEach((choiceText) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'quiz-choice-btn';
+      btn.textContent = choiceText;
+      btn.addEventListener('click', () => window.selectQuizChoice(choiceText, btn));
+      quizChoicesEl.appendChild(btn);
+    });
   } else {
-    inputDisplayEl.style.display = 'flex';
-    hintBarEl.style.display = 'block';
-    textAnswerAreaEl.style.display = 'none';
-    textAnswerHintEl.style.display = 'none';
+    quizChoicesEl.style.display = 'none';
+    typingAreaEl.style.display = 'block';
 
-    resetHintTimer();
+    currentIsTextMode = isTextInputQuestion(item);
 
-    currentValidOptions = kanaToRomajiOptions(item.reading);
-    currentDisplayOption = currentValidOptions[0] || item.reading;
+    if (currentIsTextMode) {
+      // 文字入力モード：ローマ字表示を隠し、テキスト入力欄を表示
+      inputDisplayEl.style.display = 'none';
+      hintBarEl.style.display = 'none';
+      hintBarEl.classList.remove('visible');
+      textAnswerAreaEl.style.display = 'flex';
+      textAnswerHintEl.style.display = 'block';
+      textAnswerHintEl.classList.remove('visible'); // 💡 修正：まずは非表示にし、数秒無入力の場合のみ表示する
+      textAnswerInputEl.value = '';
+      textAnswerInputEl.classList.remove('error');
+      setTimeout(() => textAnswerInputEl.focus(), 50);
+
+      resetHintTimer();
+    } else {
+      inputDisplayEl.style.display = 'flex';
+      hintBarEl.style.display = 'block';
+      textAnswerAreaEl.style.display = 'none';
+      textAnswerHintEl.style.display = 'none';
+
+      resetHintTimer();
+
+      currentValidOptions = kanaToRomajiOptions(item.reading);
+      currentDisplayOption = currentValidOptions[0] || item.reading;
+    }
   }
   
   const stageArea = document.getElementById('kanji-stage-area');
@@ -2258,7 +2486,7 @@ function loadQuestion(idx) {
   document.getElementById('progress-current').textContent = idx;
   document.getElementById('progress-bar').style.width = ((idx / gameQueue.length) * 100) + '%';
   
-  if (!currentIsTextMode) {
+  if (gameMode !== 'quiz' && !currentIsTextMode) {
     renderInputDisplay();
   }
 }
@@ -2304,6 +2532,20 @@ function onKeyDown(e) {
       closePreviewModal();
     } else {
       endGame(true);
+    }
+    return;
+  }
+
+  // 💡 追加：クイズモード中は、数字キー(1〜4)で選択肢を選べるようにするだけで、
+  // 通常のローマ字入力処理は一切行わない
+  if (gameMode === 'quiz') {
+    if (['1', '2', '3', '4'].includes(e.key)) {
+      const idx = parseInt(e.key, 10) - 1;
+      const buttons = document.querySelectorAll('.quiz-choice-btn');
+      const btn = buttons[idx];
+      if (btn && !btn.disabled) {
+        btn.click();
+      }
     }
     return;
   }
@@ -2417,7 +2659,7 @@ function submitTextAnswer() {
       time: questionDuration,
       miss: currentQuestionMissCount,
       originalIndex: item.originalIndex,
-      usedHint: false
+      usedHint: hintShown // 💡 修正：常にfalseになっていたバグを修正（Shift+Enterで答えを表示した場合に赤く表示されるようにする）
     });
 
     questionStartTime = elapsedTime;
@@ -2514,6 +2756,53 @@ function advanceQuestion() {
   }
 }
 
+// 💡 追加：クイズモード（四択）で選択肢をタップした時の判定処理
+window.selectQuizChoice = function(choiceText, btnEl) {
+  if (quizAnswered) return; // 連打・多重クリックの防止
+  const item = gameQueue[currentIndex];
+  if (!item) return;
+
+  if (isFirstKeyStroke) {
+    isFirstKeyStroke = false;
+    startTimer();
+    questionStartTime = elapsedTime;
+  }
+
+  const correct = getQuizAnswerText(item);
+
+  if (choiceText === correct) {
+    quizAnswered = true;
+    playSE(SE.allCorrect);
+
+    const questionDuration = elapsedTime - (questionStartTime || 0);
+    timeRecords.push({
+      kanji: item.kanji,
+      reading: item.reading || item.kanji,
+      time: questionDuration,
+      miss: currentQuestionMissCount,
+      originalIndex: item.originalIndex,
+      usedHint: currentQuestionMissCount > 0 // 💡 修正：この問題でミス（ペナルティ）があった場合、リザルト画面等で秒数を赤く表示するためのフラグとして流用する
+    });
+
+    questionStartTime = elapsedTime;
+    currentQuestionMissCount = 0;
+
+    // 💡 修正：タイムアタックのため、正解表示を待たずにすぐ次の問題へ進める
+    advanceQuestion();
+  } else {
+    btnEl.classList.add('wrong');
+    btnEl.disabled = true;
+    playSE(SE.keyWrong);
+    missCount++;
+    currentQuestionMissCount++;
+
+    // 💡 追加：クイズモードでミスをした場合のペナルティ（+5秒）
+    elapsedTime += 5;
+    penaltySeconds += 5;
+    updateTimerDisplay();
+  }
+};
+
 async function endGame(isEscaped = false) {
   let globalPlayCount = null; // 💡 追加：try節の外で宣言し、リザルト表示時にも参照できるようにする
   try {
@@ -2532,16 +2821,39 @@ const currentFp = playedHashId || currentActiveHashId;
         playedTemplateName || templateName,
         playedAuthorName || authorName,
         sourceList,
-        currentFp
+        currentFp,
+        playedGameMode
       ).catch(e => console.error("裏側アップロードエラー:", e));
     }
 
-    // 💡 追加：クリアした場合（リタイアは除く）のみ、このハッシュ値の「全ユーザー合計プレイ回数」を+1する
+    // 💡 修正：プレイ回数の記録（Firebaseとの通信）を待たずにリザルト画面へ進めるようにする
+    // 以前は await していたため、通信のラグがそのままプレイ後の待ち時間になっていた。
+    // ここでは呼び出しだけ行い、結果が返ってきた時点で非同期にリザルト画面のDOMを更新する。
     if (!isEscaped && window.incrementPlayCount && currentFp) {
-      globalPlayCount = await window.incrementPlayCount(currentFp).catch(e => {
-        console.error("プレイ回数の記録に失敗しました:", e);
-        return null;
-      });
+      window.incrementPlayCount(currentFp)
+        .then(count => {
+          if (count === null || count === undefined) return;
+
+          // 💡 画面に表示中であれば、その場でリザルト表示を更新する
+          const playCountRow = document.getElementById('res-play-count-row');
+          const playCountEl = document.getElementById('res-play-count');
+          if (playCountRow && playCountEl && document.getElementById('result-screen').classList.contains('active')) {
+            playCountEl.textContent = count;
+            playCountRow.style.display = 'block';
+          }
+
+          // 💡 保存済みの履歴データにも、後追いでプレイ回数を反映しておく（一貫性のため）
+          try {
+            const latestHistory = JSON.parse(localStorage.getItem('typing-play-history') || '[]');
+            if (latestHistory[0] && latestHistory[0].fp === currentFp && latestHistory[0].date === dateStr) {
+              latestHistory[0].globalPlayCount = count;
+              localStorage.setItem('typing-play-history', JSON.stringify(latestHistory));
+            }
+          } catch (e) {
+            console.warn('履歴へのプレイ回数の反映に失敗しました:', e);
+          }
+        })
+        .catch(e => console.error("プレイ回数の記録に失敗しました:", e));
     }
 
     // 💡 3. 履歴に保存するための軽量なリスト（画像を除外したもの）を作成
@@ -2565,7 +2877,8 @@ const currentFp = playedHashId || currentActiveHashId;
       cloudId: currentCloudId || currentFp,
       date: dateStr,
       fp: currentFp,
-      globalPlayCount: globalPlayCount
+      globalPlayCount: globalPlayCount,
+      mode: playedGameMode // 💡 追加：このプレイがタイピング/クイズどちらのモードだったかを記録
     };
 
     let currentHistory = JSON.parse(localStorage.getItem('typing-play-history') || '[]');
@@ -2596,7 +2909,7 @@ const currentFp = playedHashId || currentActiveHashId;
       let initialPlay = 0;
       let initialValid = 0;
       currentHistory.forEach(item => {
-        const itemFp = item.fp || window.generateHashId(item.template, item.author, item.playedKanjiList || []);
+        const itemFp = item.fp || window.generateHashId(item.template, item.author, item.playedKanjiList || [], item.mode || 'typing');
         if (itemFp === currentFp) {
           initialPlay++;
           if (item.score !== 'RETIRE') initialValid++;
@@ -2689,13 +3002,22 @@ const hasPrevRecord = !!savedBests[currentFp] && !!savedBests[currentFp].bestIte
 
   document.getElementById('result-template-title').textContent = `テンプレート: ${playedTemplateName}`;
   const resAuthorTitle = document.getElementById('result-author-title');
-  if (resAuthorTitle) {
+  const resAuthorText = document.getElementById('result-author-text');
+  const resModeText = document.getElementById('result-mode-text');
+
+  // 💡 修正：上部の絵文字バッジをやめ、作者名の右にシンプルなテキストで表示する
+  if (resModeText) {
+    resModeText.textContent = (playedGameMode === 'quiz') ? 'モード：クイズ' : 'モード：タイピング';
+  }
+
+  if (resAuthorTitle && resAuthorText) {
     if (playedAuthorName && playedAuthorName !== '未設定') {
-      resAuthorTitle.textContent = `作者: ${playedAuthorName}`;
-      resAuthorTitle.style.display = 'block';
+      resAuthorText.textContent = `作者: ${playedAuthorName}`;
     } else {
-      resAuthorTitle.style.display = 'none';
+      resAuthorText.textContent = '';
     }
+    // 💡 修正：作者が未設定でもモード表示は必要なため、行自体は常に表示する
+    resAuthorTitle.style.display = 'block';
   }
 
   const slowestContainer = document.getElementById('res-slowest');
@@ -2808,7 +3130,8 @@ lastResultData = {
     totalQuestions: gameQueue.length,
     timeRecords: timeRecords,
     date: playDateStr,
-    fp: playedHashId || currentActiveHashId // 💡 修正：閉じ込められた変数を使わず、保持しているハッシュを直接渡す
+    fp: playedHashId || currentActiveHashId, // 💡 修正：閉じ込められた変数を使わず、保持しているハッシュを直接渡す
+    mode: playedGameMode // 💡 追加：X共有時にタイピング/クイズを記載するために必要
   };
 
   // ベスト記録更新バナー・現在のベスト記録パネルの表示制御
@@ -2857,7 +3180,7 @@ function renderKanjiList() {
     const opts = kanaToRomajiOptions(item.reading);
     const isTextMode = isTextInputQuestion(item);
     const romajiPreview = isTextMode
-      ? '⌨️ 文字入力モード（ひらがな未設定：正しい文字を直接入力）'
+      ? '文字入力モード（ひらがな未設定：正しい文字を直接入力）'
       : opts.slice(0, 3).join(' / ');
     const div = document.createElement('div');
     div.className = 'kanji-item';
@@ -2875,7 +3198,7 @@ function renderKanjiList() {
 if (item.image && item.image !== "EXTERNAL_IMAGE") {
       mediaWrap.innerHTML = `<img src="${item.image}" class="ki-thumb" style="border:2px dashed transparent;" onmouseover="this.style.borderColor='#0071e3'" onmouseout="this.style.borderColor='transparent'">`;
     } else if (item.image === "EXTERNAL_IMAGE") {
-      mediaWrap.innerHTML = `<div class="ki-no-thumb" title="画像データがクラウドから読み込めませんでした" style="border:1px dashed #ff3b30;border-radius:3px;width:45px;height:35px;display:flex;align-items:center;justify-content:center;font-size:0.6rem;color:#ff3b30;cursor:pointer;background:#fff0f0;">⚠️消失</div>`;
+      mediaWrap.innerHTML = `<div class="ki-no-thumb" title="画像データがクラウドから読み込めませんでした" style="border:1px dashed #ff3b30;border-radius:3px;width:45px;height:35px;display:flex;align-items:center;justify-content:center;font-size:0.6rem;color:#ff3b30;cursor:pointer;background:#fff0f0;">消失</div>`;
     } else {
       mediaWrap.innerHTML = `<div class="ki-no-thumb" style="border:1px dashed #d2d2d7;border-radius:3px;width:45px;height:35px;display:flex;align-items:center;justify-content:center;font-size:0.6rem;color:var(--mist);cursor:pointer;">＋画像</div>`;
     }
@@ -2948,7 +3271,7 @@ img.onload = function() {
         if (canBeTextMode) {
           kanjiList[i].reading = '';
           saveKanjiList();
-          romajiPreviewEl.textContent = '⌨️ 文字入力モード（ひらがな未設定：正しい文字を直接入力）';
+          romajiPreviewEl.textContent = '文字入力モード（ひらがな未設定：正しい文字を直接入力）';
           showToast('読みなし：文字入力モードに設定しました');
           return;
         }
@@ -3039,7 +3362,7 @@ function deleteKanji(i) {
 }
 
 function clearAllSettings() {
-  const confirmClear = confirm('⚠️ 現在設定されている「テンプレート名」「作者名」および「すべてのお題」を完全に消去します。\n\n本当にクリアしてもよろしいですか？');
+  const confirmClear = confirm('現在設定されている「テンプレート名」「作者名」および「すべてのお題」を完全に消去します。\n\n本当にクリアしてもよろしいですか？');
   if (!confirmClear) return;
 
   templateName = '無題のお題';
@@ -3075,7 +3398,8 @@ function exportJSON() {
     version: 1,
     templateName: templateName, 
     authorName: authorName, 
-    kanji: kanjiList
+    kanji: kanjiList,
+    mode: gameMode // 💡 追加：タイピング/クイズのモードもエクスポートし、再インポート時に復元できるようにする
   };
   
   const data = JSON.stringify(dataObject, null, 2);
@@ -3104,6 +3428,12 @@ function importJSON(event) {
       
       templateName = data.templateName || data.template || '無題のお題';
       authorName = data.authorName || data.author || '';
+
+      // 💡 追加：JSONに記録されたモード（タイピング/クイズ）を復元する
+      // ハッシュ値からの逆算はJSONインポートには使えない（共有ハッシュを経由しないため）ので、
+      // ファイルに保存された mode フィールドを信頼する（無ければタイピングにフォールバック）
+      const importedMode = (data.mode === 'quiz') ? 'quiz' : 'typing';
+      if (typeof window.setGameMode === 'function') window.setGameMode(importedMode);
       
       // 💡 修正：saveKanjiList()を使い、localStorage保存とハッシュ再計算を確実に行う
       // （以前は localStorage.setItem のみで、ハッシュが更新されずにいた＝共有リンク不具合の原因）
@@ -3155,7 +3485,7 @@ function importJSONAppend(event) {
       const list = data.kanji || data;
       if (!Array.isArray(list)) throw new Error('invalid');
 
-      const newItems = list.filter(item => item.reading && (item.kanji || item.image));
+      const newItems = list.filter(item => (item.reading && (item.kanji || item.image)) || (!item.reading && item.image && item.kanji)); // 💡 修正：ひらがな未設定＋画像＋お題のみの問題も許可（他の読み込み処理と統一）
       
       kanjiList = kanjiList.concat(newItems);
       saveKanjiList();
@@ -3185,10 +3515,10 @@ async function exportHash() {
   }
 
   try {
-    const currentFp = window.generateHashId(templateName, authorName, kanjiList);
+    const currentFp = window.generateHashId(templateName, authorName, kanjiList, gameMode);
     // クラウドに保存
     if (window.uploadGameDataOnEnd) {
-       await window.uploadGameDataOnEnd(templateName, authorName, kanjiList, currentFp);
+       await window.uploadGameDataOnEnd(templateName, authorName, kanjiList, currentFp, gameMode);
     }
     
     // URLを組み立ててクリップボードにコピー
@@ -3222,7 +3552,7 @@ async function importHash(isAppend = false) {
   if (match) {
     hashId = match[1];
   } else if (hashId.startsWith('http')) {
-    showToast('⚠️ 有効なIDが含まれていないURLです');
+    showToast('有効なIDが含まれていないURLです');
     return;
   }
 
@@ -3234,7 +3564,7 @@ async function importHash(isAppend = false) {
       const list = data.kanji || data;
       if (!Array.isArray(list)) throw new Error('invalid');
 
-      const newItems = list.filter(item => item.reading && (item.kanji || item.image));
+      const newItems = list.filter(item => (item.reading && (item.kanji || item.image)) || (!item.reading && item.image && item.kanji)); // 💡 修正：ひらがな未設定＋画像＋お題のみの問題も許可（他の読み込み処理と統一）
 
       if (isAppend) {
         kanjiList = kanjiList.concat(newItems);
@@ -3246,6 +3576,13 @@ async function importHash(isAppend = false) {
         kanjiList = newItems;
         templateName = data.templateName || data.template || '無題のお題';
         authorName = data.authorName || data.author || '';
+
+        // 💡 修正：window.setGameMode() を経由して統一的に切り替える（localStorage保存・UI更新・ハッシュ再計算を一箇所で確実に行う）
+        // また、mode判定はハッシュ値からも逆算して確実に行う（古い共有データにmodeフィールドが無くても正しく判定できる）
+        const importedMode = (typeof window.inferModeFromHash === 'function')
+          ? window.inferModeFromHash(hashId, data)
+          : ((data.mode === 'quiz') ? 'quiz' : 'typing');
+        if (typeof window.setGameMode === 'function') window.setGameMode(importedMode);
         
         saveKanjiList();
         localStorage.setItem('kanji-dojo-template-name', templateName);
@@ -3276,11 +3613,11 @@ async function importHash(isAppend = false) {
         showToast(`「${templateName}」を読み込みました`);
       }
     } else {
-      showToast('⚠️ 指定されたデータが見つかりませんでした');
+      showToast('指定されたデータが見つかりませんでした');
     }
   } catch (err) {
     console.error("Firebase読み込みエラー:", err);
-    showToast('⚠️ データの読み込みに失敗しました');
+    showToast('データの読み込みに失敗しました');
   }
 }
 
@@ -3313,7 +3650,9 @@ async function saveResultAsImage() {
 
   ctx.fillStyle = '#6e6e73';
   ctx.font = 'bold 28px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-  ctx.fillText('TYPING RESULT', 120, 95);
+  // 💡 追加：タイピングモード/クイズモードのどちらだったかをシンプルに表示する
+  const modeLabelText = (playedGameMode === 'quiz') ? 'QUIZ RESULT' : 'TYPING RESULT';
+  ctx.fillText(modeLabelText, 120, 95);
 
   if (shareUrl && typeof QRious !== 'undefined') {
     const qrSize = 110; 
@@ -3670,7 +4009,8 @@ function checkProgress() {
 const currentHashId = window.generateHashId(
         playedTemplateName || '無題',
         playedAuthorName || '',
-        playedKanjiList
+        playedKanjiList,
+        playedGameMode
       );
 
       // 💡 文字色をはっきりと見えるダークグレーに設定
@@ -3755,14 +4095,15 @@ async function shareOnX(historyData = null) {
   const data = getUnifiedResultData(historyData);
   
   const isRetire = (data.score === 'RETIRE' || data.score === 'リタイア');
-  
+  const modeLabel = (data.mode === 'quiz') ? 'クイズモード' : 'タイピングモード'; // 💡 追加：クイズ/タイピングを共有文に記載
+
   let titleText = (data.author && data.author !== '未設定') ? `${data.author}さんの「${data.template}」` : `「${data.template}」`;
   
   let text = '';
   if (isRetire) {
-    text = `${titleText} に挑戦しましたが、途中でリタイアしました。`;
+    text = `${titleText} に${modeLabel}で挑戦しましたが、途中でリタイアしました。`;
   } else {
-    text = `${titleText} の全${data.totalQuestions}問をクリアしました。所要時間は【${data.score}秒】です。\nミスタイプ数は${data.miss}回でした。`;
+    text = `${titleText} の全${data.totalQuestions}問を${modeLabel}でクリアしました。所要時間は【${data.score}秒】です。\nミスタイプ数は${data.miss}回でした。`;
     
     if (data.timeRecords && data.timeRecords.length > 0) {
       const slowest = data.timeRecords.reduce((max, item) => item.time > max.time ? item : max, data.timeRecords[0]);
@@ -3849,7 +4190,7 @@ const savedBests = JSON.parse(localStorage.getItem('typing-best-records') || '{}
 if (bestTargets.length > 0) {
     const sectionTitle = document.createElement('div');
     sectionTitle.className = 'history-best-section-title';
-    sectionTitle.innerHTML = '🏆 ベスト記録 <div class="info-icon-wrapper" style="margin-left:6px;">i<span class="info-tooltip">同じお題セットを5回以上プレイすると記録されます</span></div>';
+    sectionTitle.innerHTML = 'ベスト記録 <div class="info-icon-wrapper" style="margin-left:6px;">i<span class="info-tooltip">同じお題セットを5回以上プレイすると記録されます</span></div>';
     container.appendChild(sectionTitle);
 
 bestTargets.forEach(({ fp, name, author, bestScore, bestItem, playCount, validCount }) => {
@@ -3864,6 +4205,7 @@ bestTargets.forEach(({ fp, name, author, bestScore, bestItem, playCount, validCo
       const dateText = bestItem && bestItem.date ? bestItem.date : '';
 
       const fpEncoded = btoa(unescape(encodeURIComponent(fp)));
+      const bestModeText = (bestItem && bestItem.mode === 'quiz') ? 'クイズ' : 'タイピング'; // 💡 修正：絵文字ではなくテキストで表示
 
       // 💡 ボタンのアクションも「ベスト記録からの呼び出し(true)」としてハッシュIDを直接渡す
       const btnHtml = `
@@ -3888,6 +4230,7 @@ bestTargets.forEach(({ fp, name, author, bestScore, bestItem, playCount, validCo
           <div class="title-row">
             <div class="history-item-title">${name}</div>
             <span class="history-item-author">${author && author !== '未設定' ? '作者: ' + author : ''}</span>
+            <span class="history-item-mode">モード：${bestModeText}</span>
             <span class="history-best-play-count" style="margin-left:6px;">${playCount}回プレイ（完走 ${validCount}回）</span>
           </div>
           <div class="history-item-meta" style="margin-top:2px;">
@@ -3904,7 +4247,7 @@ bestTargets.forEach(({ fp, name, author, bestScore, bestItem, playCount, validCo
 
     const divider = document.createElement('div');
     divider.className = 'history-section-divider';
-    divider.textContent = '📋 すべての履歴';
+    divider.textContent = 'すべての履歴';
     container.appendChild(divider);
   }
 
@@ -3914,7 +4257,7 @@ bestTargets.forEach(({ fp, name, author, bestScore, bestItem, playCount, validCo
   }
 
   historyData.forEach((item, index) => {
-const fp = item.fp || window.generateHashId(item.template, item.author, item.playedKanjiList || []);
+const fp = item.fp || window.generateHashId(item.template, item.author, item.playedKanjiList || [], item.mode || 'typing');
     const div = document.createElement('div');
     div.className = 'history-item';
 
@@ -3927,6 +4270,7 @@ const fp = item.fp || window.generateHashId(item.template, item.author, item.pla
     
     const missText = item.miss !== undefined ? `${item.miss}回` : '0回';
     const totalQText = item.totalQuestions !== undefined ? `${item.totalQuestions}問` : '-問';
+    const modeText = item.mode === 'quiz' ? 'クイズ' : 'タイピング'; // 💡 修正：絵文字ではなくテキストで表示
 
     // 💡 修正：IDをタイトル横から削除し、メタ情報（日付の後）に等幅フォントで追加
     div.innerHTML = `
@@ -3935,6 +4279,7 @@ const fp = item.fp || window.generateHashId(item.template, item.author, item.pla
         <div class="title-row">
           <div class="history-item-title">${item.template || '無題'}</div>
           <span class="history-item-author">${item.author && item.author !== '未設定' ? '作者: ' + item.author : ''}</span>
+          <span class="history-item-mode">モード：${modeText}</span>
         </div>
         <div class="history-item-meta" style="margin-top:2px;">
           ${item.date} ｜ ID: <span style="font-family:'Share Tech Mono',monospace; letter-spacing:0;">${fp}</span> ｜ 問題数: ${totalQText}${penaltyStr} ｜ ミス: ${missText}
@@ -4045,11 +4390,11 @@ if (hasImageQuestion) {
         }
       } catch (err) {
         console.error("Firebaseからの画像復元に失敗:", err);
-        showToast('⚠️ 画像の一部が復元できませんでした');
+        showToast('画像の一部が復元できませんでした');
       }
     } else {
       // 💡 追加：cloudIdがない（通信失敗などで保存されなかった）場合の通知
-      showToast('⚠️ 古い記録のため、画像を復元できませんでした');
+      showToast('古い記録のため、画像を復元できませんでした');
     }
   }
 
@@ -4075,7 +4420,7 @@ if (hasImageQuestion) {
         saveResultAsImage(); 
       });
     } else {
-      showToast('⚠️ この履歴には問題一覧が含まれていません');
+      showToast('この履歴には問題一覧が含まれていません');
     }
   } else if (type === 'x') {
     lastResultData = data; 
@@ -4096,7 +4441,7 @@ if (hasImageQuestion) {
 }
 
 function clearPlayHistory() {
-  const confirmClear = confirm('⚠️ これまでのプレイ履歴（スコア記録）をすべて完全に削除します。\n\nベスト記録は別途保持されます。\n\n本当によろしいですか？');
+  const confirmClear = confirm('これまでのプレイ履歴（スコア記録）をすべて完全に削除します。\n\nベスト記録は別途保持されます。\n\n本当によろしいですか？');
   if (!confirmClear) return;
   
   localStorage.removeItem('typing-play-history');
@@ -4105,7 +4450,7 @@ function clearPlayHistory() {
 }
 
 function clearBestRecords() {
-  const confirmClear = confirm('⚠️ 保存されているベスト記録をすべて削除します。\n\n本当によろしいですか？');
+  const confirmClear = confirm('保存されているベスト記録をすべて削除します。\n\n本当によろしいですか？');
   if (!confirmClear) return;
   
   localStorage.removeItem('typing-best-records');
@@ -4171,7 +4516,7 @@ async function applyHistoryData(indexOrFpEncoded, isBest = false) {
   }
   if (!data) return;
 
-  const confirmApply = confirm(`⚠️ この記録のお題「${data.template}」を現在の設定に復元しますか？\n\n※現在設定されているお題はクリアされ、上書きされます。`);
+  const confirmApply = confirm(`この記録のお題「${data.template}」を現在の設定に復元しますか？\n\n※現在設定されているお題はクリアされ、上書きされます。`);
   if (!confirmApply) return;
 
   let finalKanjiList = data.playedKanjiList || [];
@@ -4198,13 +4543,20 @@ async function applyHistoryData(indexOrFpEncoded, isBest = false) {
       }
     } catch (err) {
       console.error("Firebaseからの画像復元に失敗:", err);
-      showToast('⚠️ 画像の一部が復元できませんでした');
+      showToast('画像の一部が復元できませんでした');
     }
   }
 
   kanjiList = finalKanjiList;
   templateName = data.template;
   authorName = data.author || '';
+
+  // 💡 追加：この履歴がタイピング/クイズどちらのモードだったかを復元する
+  // （ハッシュ値から逆算する堅牢な判定を使い、古い履歴データ（modeフィールド無し）でも正しく判定する）
+  const restoredMode = (typeof window.inferModeFromHash === 'function')
+    ? window.inferModeFromHash(data.fp || data.cloudId, { templateName, authorName, kanji: finalKanjiList, mode: data.mode })
+    : (data.mode === 'quiz' ? 'quiz' : 'typing');
+  if (typeof window.setGameMode === 'function') window.setGameMode(restoredMode);
 
   saveKanjiList();
   localStorage.setItem('kanji-dojo-template-name', templateName);
@@ -4241,13 +4593,16 @@ function getUnifiedResultData(historyData = null) {
   const scoreEl = document.getElementById('result-score');
   if (scoreEl) {
     const scoreText = scoreEl.textContent.trim();
+    const modeTextEl = document.getElementById('result-mode-text');
+    const modeFromDom = (modeTextEl && modeTextEl.textContent.includes('クイズ')) ? 'quiz' : 'typing';
     return {
       template: document.getElementById('result-template-title').textContent.replace('テンプレート: ', ''),
-      author: document.getElementById('result-author-title').textContent.replace('作者: ', ''),
+      author: (document.getElementById('result-author-text') || document.getElementById('result-author-title')).textContent.replace('作者: ', ''),
       score: (scoreText.includes('リタイア') || scoreText === 'RETIRE') ? 'RETIRE' : scoreText,
       miss: document.getElementById('res-miss-count').textContent.replace('回', ''),
       totalQuestions: document.getElementById('res-total').textContent.replace('問', ''),
-      timeRecords: timeRecords
+      timeRecords: timeRecords,
+      mode: modeFromDom
     };
   }
   return null;
